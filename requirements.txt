@@ -1,0 +1,26 @@
+
+Python Backend
+- File: app.py
+- Purpose:
+  - Serve frontend
+  - Receive input string
+  - Process preset DFA
+  - Generate transition trace
+  - Return JSON response
+
+Backend Requirements
+- Accept POST request from frontend
+- Validate input
+- Simulate DFA
+- Record steps
+- Return final state
+- Return accepted/rejected result
+- Handle invalid symbols
+
+Json response requirements
+- original input string
+- list of steps in the trace (transitions/states)
+- final state
+- Accepted or rejected result
+
+
