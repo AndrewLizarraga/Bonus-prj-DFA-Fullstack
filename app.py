@@ -114,4 +114,14 @@ def root():
 def run_dfa(payload: DFARequest):
     return simulate_dfa(payload.dfa, payload.input_string)
 
-    
+@app.get("/dfas")
+def get_dfas():
+    return {
+        "dfas":[
+            {
+                "id": dfa_id,
+                "description": dfa["description"],
+            }
+            for dfa_name, dfa_data in DFAS.items()
+        ]
+    }
