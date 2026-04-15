@@ -1,7 +1,7 @@
 const dfaSelect = document.getElementById('dfaSelect');
 const dfaDescription = document.getElementById('dfaDescription');
 const runBtn = document.getElementById('runBtn');
-const inputString = document.getElementById('inputString');
+const stringInput = document.getElementById('stringInput');
 const resultText = document.getElementById('resultText');
 const traceOutput = document.getElementById('traceOutput');
 
@@ -13,7 +13,7 @@ document.addEventListener('DFA_LIST_LOADED', (event) => {
 
 runBtn.addEventListener('click', runDFA);
 
-dfaDescription.addEventListener('change', showDfaDescription);
+dfaSelect.addEventListener('change', showSelectedDfaInfo);
 
 async function loadDFAs() {
     try {
@@ -44,4 +44,52 @@ async function loadDFAs() {
     }
 }
 
+function showSelectedDfaInfo() {
+    const selectedDfaId = dfaSelect.value;
+    const selectedDfa = dfaList.find(dfa => dfa.id === selectedDfaId);
 
+    if (!selectedDfa) {
+        dfaDescription.textContent = '';
+        return;
+    }
+
+    dfaDescription.textContent = selectedDfa.description;
+}
+
+async function runDFA() {
+    const selectedDfaId = dfaSelect.value;
+    const userInput = stringInput.value.trim();
+
+    if (!selectedDfaId) {
+        resultText.textContent = 'Please select a DFA.';
+        return;
+    }
+
+    try {
+        const response = await fetch('/run-dfa', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                dfa: selectedDfaId,
+                input_string: userInput
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            resultText.textContent = `Error: ${data.error}`;
+            traceOutput.textContent = '';
+            return;
+        }
+
+        resultText.textContent = data.is_accepted ? 'Accepted' : 'Rejected';
+        traceOutput.textContent = JSON.stringify(data, null, 2);
+    } catch (error) {
+        console.error('Error running DFA:', error);
+        resultText.textContent = 'Request failed.';
+        traceOutput.textContent = '';
+    }
+}
