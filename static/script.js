@@ -1,3 +1,8 @@
+// IMPORTANT: Replace this with your real forwarded Codespaces FastAPI URL.
+// Example: 'https://your-backend-name-8000.app.github.dev'
+
+
+// Grab references to the HTML elements we need to read from or update.
 const dfaSelect = document.getElementById('dfaSelect');
 const dfaDescription = document.getElementById('dfaDescription');
 const runBtn = document.getElementById('runBtn');
@@ -5,29 +10,40 @@ const stringInput = document.getElementById('stringInput');
 const resultText = document.getElementById('resultText');
 const traceOutput = document.getElementById('traceOutput');
 
+// This will store the DFA list returned by the backend.
 let dfaList = [];
 
-document.addEventListener('DFA_LIST_LOADED', (event) => {
-    loadDFAs()
+// Wait until HTML is fully loaded, then do initial setup.
+// This prevents null errors from querying elements too early.
+document.addEventListener('DOMContentLoaded', () => {
+    loadDFAs();
 });
 
+// Run simulation when user clicks the button.
 runBtn.addEventListener('click', runDFA);
 
+// Update the description text when the selected DFA changes.
 dfaSelect.addEventListener('change', showSelectedDfaInfo);
 
 async function loadDFAs() {
     try {
-        const response = await fetch('/dfas');
+        // Use the backend base URL so the request goes to FastAPI,
+        // not to whatever origin is hosting/previewing the frontend files.
+        const response = await fetch(`/dfas`);
         const data = await response.json();
+
         dfaList = data.dfas;
         dfaSelect.innerHTML = '';
 
+        // Add a default first option so the user must pick one.
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
         defaultOption.textContent = 'Select a DFA';
         dfaSelect.appendChild(defaultOption);
 
-        dfaList.forEach(dfaObj => {
+        // Build dropdown options dynamically from backend data.
+        // This keeps backend as the source of truth.
+        dfaList.forEach((dfaObj) => {
             const option = document.createElement('option');
             option.value = dfaObj.id;
             option.textContent = dfaObj.id;
@@ -35,7 +51,7 @@ async function loadDFAs() {
         });
     } catch (error) {
         console.error('Error loading DFAs:', error);
-        dfaSelect.innerHTML = "";
+        dfaSelect.innerHTML = '';
 
         const errorOption = document.createElement('option');
         errorOption.value = '';
@@ -46,13 +62,15 @@ async function loadDFAs() {
 
 function showSelectedDfaInfo() {
     const selectedDfaId = dfaSelect.value;
-    const selectedDfa = dfaList.find(dfa => dfa.id === selectedDfaId);
+    const selectedDfa = dfaList.find((dfa) => dfa.id === selectedDfaId);
 
+    // If nothing is selected, clear the description area.
     if (!selectedDfa) {
         dfaDescription.textContent = '';
         return;
     }
 
+    // Show the backend-provided DFA description under the dropdown.
     dfaDescription.textContent = selectedDfa.description;
 }
 
@@ -66,7 +84,8 @@ async function runDFA() {
     }
 
     try {
-        const response = await fetch('/run-dfa', {
+        // Send the simulation request to FastAPI using the full backend base URL.
+        const response = await fetch(`/run-dfa`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

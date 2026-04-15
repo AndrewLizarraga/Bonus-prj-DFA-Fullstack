@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DFA Visualizer</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
   <header>
@@ -14,12 +14,19 @@
   <main>
     <section class="controls" aria-label="Simulation controls">
       <label for="dfaSelect">Choose DFA:</label>
-      <select id="dfaSelect"></select>
+      <select id="dfaSelect">
+        <option value="">Loading DFAs...</option>
+      </select>
 
       <label for="stringInput">Input string:</label>
-      <input id="stringInput" type="text" placeholder="Enter 0s and 1s" />
+      <input
+        id="stringInput"
+        type="text"
+        placeholder="Enter 0s and 1s"
+        autocomplete="off"
+      />
 
-      <button id="runBtn">Run DFA</button>
+      <button id="runBtn" type="button">Run DFA</button>
     </section>
 
     <section class="results" aria-label="Simulation results">
@@ -29,10 +36,16 @@
     </section>
 
     <section class="visualization" aria-label="DFA visualization">
-      <canvas id="dfaCanvas" width="800" height="400"></canvas>
+      <canvas
+        id="dfaCanvas"
+        width="800"
+        height="400"
+        role="img"
+        aria-label="DFA state diagram visualization"
+      ></canvas>
     </section>
   </main>
 
-  <script src="script.js"></script>
-</body>
+  <script src="/static/script.js"></script>
+</body> 
 </html>
