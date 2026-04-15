@@ -17,7 +17,7 @@ dfaSelect.addEventListener('change', showSelectedDfaInfo);
 
 async function loadDFAs() {
     try {
-        const response = await fetch('/dfas.json');
+        const response = await fetch('/dfas');
         const data = await response.json();
         dfaList = data.dfas;
         dfaSelect.innerHTML = '';
