@@ -126,12 +126,32 @@ def run_dfa(payload: DFARequest):
 
 @app.get("/dfas")
 def get_dfas():
-    return {
-        "dfas": [
+    dfa_list = []
+
+    for dfa_name, dfa_data in DFAS.items():
+        states = sorted({
+            dfa_data["start_state"],
+            *dfa_data["accept_states"],
+            *[from_state for from_state, _ in dfa_data["transitions"].keys()],
+            *dfa_data["transitions"].values(),
+        })
+
+        transitions = [
             {
-                "id": dfa_name,
-                "description": dfa_data["description"],
+                "from": from_state,
+                "to": to_state,
+                "label": symbol,
             }
-            for dfa_name, dfa_data in DFAS.items()
+            for (from_state, symbol), to_state in dfa_data["transitions"].items()
         ]
-    }
+
+        dfa_list.append({
+            "id": dfa_name,
+            "description": dfa_data["description"],
+            "states": states,
+            "start_state": dfa_data["start_state"],
+            "accept_states": list(dfa_data["accept_states"]),
+            "transitions": transitions,
+        })
+
+    return {"dfas": dfa_list}
