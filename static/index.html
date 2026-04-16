@@ -7,56 +7,85 @@
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <header>
+  <header class="site-header">
     <h1>DFA Visualizer</h1>
+
+    <div class="dropdown-header">
+      <div class="select" role="button" aria-haspopup="listbox" aria-expanded="false" tabindex="0">
+        <span class="selected">DFA Diagrams</span>
+        <div class="caret"></div>
+      </div>
+      <ul class="menu" role="listbox" aria-label="Feature selection">
+        <li role="option" class="active" data-value="dfa-diagrams" aria-selected="true">DFA Diagrams</li>
+        <li role="option" data-value="music-controller" aria-selected="false">Music Controller</li>
+        <li role="option" data-value="coming-soon" aria-selected="false">More Coming Soon</li>
+      </ul>
+    </div>
   </header>
 
+
   <main>
-    <section class="controls" aria-label="Simulation controls">
-      <label for="dfaSelect">Choose DFA:</label>
-      <select id="dfaSelect">
-        <option value="">Loading DFAs...</option>
-      </select>
+    <section class="feature-panel" data-feature="dfa-diagrams">
+      <section class="controls" aria-label="Simulation controls">
+        <label for="dfaSelect">Choose DFA:</label>
+        <select id="dfaSelect">
+          <option value="">Loading DFAs...</option>
+        </select>
 
-      <label for="stringInput">Input string:</label>
-      <input
-        id="stringInput"
-        type="text"
-        placeholder="Enter 0s and 1s"
-        autocomplete="off"
-      />
-
-      <button id="runBtn" type="button">Run DFA</button>
-
-      <div class="speed-control">
-        <label for="speedSlider">Step Speed:</label>
+        <label for="stringInput">Input string:</label>
         <input
-          id="speedSlider"
-          type="range"
-          min="0.5"
-          max="5"
-          step="0.1"
-          value="0.9"
+          id="stringInput"
+          type="text"
+          placeholder="Enter 0s and 1s"
+          autocomplete="off"
         />
-        <span id="speedValue">0.9s</span>
-      </div>
+
+        <button id="runBtn" type="button">Run DFA</button>
+
+        <div class="speed-control">
+          <label for="speedSlider">Step Speed:</label>
+          <input
+            id="speedSlider"
+            type="range"
+            min="0.5"
+            max="5"
+            step="0.1"
+            value="0.9"
+          />
+          <span id="speedValue">0.9s</span>
+        </div>
+      </section>
+
+      <section class="visualization" aria-label="DFA visualization">
+        <canvas
+          id="dfaCanvas"
+          width="800"
+          height="400"
+          role="img"
+          aria-label="DFA state diagram visualization"
+        ></canvas>
+      </section>
+
+      <section class="results" aria-label="Simulation results">
+        <p id="dfaDescription"></p>
+        <p><span id="stepCounter">Step: 0</span></p>
+        <p id="resultText"></p>
+        <pre id="traceOutput"></pre>
+      </section>
     </section>
 
-    <section class="visualization" aria-label="DFA visualization">
-      <canvas
-        id="dfaCanvas"
-        width="800"
-        height="400"
-        role="img"
-        aria-label="DFA state diagram visualization"
-      ></canvas>
+    <section class="feature-panel is-hidden" data-feature="music-controller" aria-live="polite">
+      <section aria-label="Music controller">
+        <h2>Music Controller</h2>
+        <p>This view is reserved for your future music controls.</p>
+      </section>
     </section>
 
-    <section class="results" aria-label="Simulation results">
-      <p id="dfaDescription"></p>
-      <p><span id="stepCounter">Step: 0</span></p>
-      <p id="resultText"></p>
-      <pre id="traceOutput"></pre>
+    <section class="feature-panel is-hidden" data-feature="coming-soon" aria-live="polite">
+      <section aria-label="Coming soon">
+        <h2>More Coming Soon</h2>
+        <p>Additional modules can be added here when you are ready.</p>
+      </section>
     </section>
   </main>
 
