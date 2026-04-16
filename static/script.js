@@ -26,6 +26,15 @@ let animationController = fallbackAnimationController;
 let dfaList = [];
 let latestTraceData = null;
 
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     updateSpeedDisplay();
     loadDFAs();
@@ -77,6 +86,27 @@ function updateStepCounter(currentIndex, totalSteps) {
     stepCounter.textContent = `Step: ${currentIndex + 1} / ${totalSteps}`;
 }
 
+function resetResultStateClasses() {
+    if (!resultText) {
+        return;
+    }
+
+    resultText.classList.remove('accepted', 'rejected');
+}
+
+function setResultText(message, status = null) {
+    if (!resultText) {
+        return;
+    }
+
+    resultText.textContent = message;
+    resetResultStateClasses();
+
+    if (status === 'accepted' || status === 'rejected') {
+        resultText.classList.add(status);
+    }
+}
+
 async function parseJsonSafely(response) {
     try {
         return await response.json();
@@ -96,14 +126,14 @@ async function initAnimationController() {
                 updateStepCounter(index, steps.length);
 
                 if (latestTraceData) {
-                    traceOutput.textContent = formatTraceOutput(latestTraceData, index);
+                    renderTraceProgress(latestTraceData, index, false);
                 }
             },
             onComplete(finalStep, index, steps) {
                 updateStepCounter(index, steps.length);
 
                 if (latestTraceData) {
-                    traceOutput.textContent = formatTraceOutput(latestTraceData, index);
+                    renderTraceProgress(latestTraceData, index, true);
                 }
 
                 console.log('Animation complete:', finalStep);
@@ -176,7 +206,12 @@ async function loadDFAs() {
         dfaList.forEach((dfaObj) => {
             const option = document.createElement('option');
             option.value = dfaObj.id;
-            option.textContent = dfaObj.id;
+            option.textContent = dfaObj.description
+                ? `${dfaObj.id}    L(M) = A { ${dfaObj.description} }`
+                : dfaObj.id;
+            option.title = dfaObj.description
+                ? `L(M) = A { ${dfaObj.description} }`
+                : '';
             dfaSelect.appendChild(option);
         });
     } catch (error) {
@@ -190,23 +225,80 @@ async function loadDFAs() {
     }
 }
 
-function formatTraceOutput(data, activeIndex = null) {
+function buildFriendlyTraceItems(data) {
     if (!data || !Array.isArray(data.steps) || data.steps.length === 0) {
-        return 'No trace available.';
+        return [];
     }
 
-    const inputString = typeof data.input_string === 'string' ? data.input_string : '';
-
-    const traversalParts = data.steps.map((step, index) => {
-        const state = step && step.state ? step.state : '?';
-        const remaining = step && typeof step.remaining === 'string' ? step.remaining : '';
-        const text = `${state} {${remaining}}`;
-
-        return index === activeIndex ? `[${text}]` : text;
+    const items = [];
+    const initialState = data.steps[0] && data.steps[0].state ? data.steps[0].state : '?';
+    items.push({
+        kind: 'start',
+        text: `Start at ${initialState}`
     });
 
-    const resultLabel = data.is_accepted ? 'Accepted' : 'Rejected';
-    return `Start input: ${inputString} => ${traversalParts.join(' => ')} (${resultLabel})`;
+    for (let i = 1; i < data.steps.length; i += 1) {
+        const previous = data.steps[i - 1] || {};
+        const current = data.steps[i] || {};
+
+        const prevRemaining = typeof previous.remaining === 'string' ? previous.remaining : '';
+        const currRemaining = typeof current.remaining === 'string' ? current.remaining : '';
+
+        let symbol = '?';
+        if (prevRemaining.length > currRemaining.length) {
+            const consumed = prevRemaining.slice(0, prevRemaining.length - currRemaining.length);
+            symbol = consumed.length > 0 ? consumed : 'ε';
+        } else if (prevRemaining.length === currRemaining.length) {
+            symbol = 'ε';
+        }
+
+        const nextState = current.state || '?';
+        items.push({
+            kind: 'transition',
+            text: `Read ${symbol} -> move to ${nextState}`
+        });
+    }
+
+    return items;
+}
+
+function renderTraceProgress(data, activeIndex = 0, isComplete = false) {
+    if (!traceOutput) {
+        return;
+    }
+
+    if (!data || !Array.isArray(data.steps) || data.steps.length === 0) {
+        traceOutput.textContent = '';
+        return;
+    }
+
+    const safeActiveIndex = Number.isFinite(activeIndex) ? Math.max(0, activeIndex) : 0;
+    const friendlyItems = buildFriendlyTraceItems(data);
+    const revealedCount = Math.min(safeActiveIndex + 1, friendlyItems.length);
+
+    let html = '<div class="trace-list">';
+
+    for (let idx = 0; idx < revealedCount; idx += 1) {
+        const item = friendlyItems[idx];
+        const isCurrentStep = idx === revealedCount - 1 && !isComplete;
+        const classes = isCurrentStep ? 'trace-step active' : 'trace-step completed';
+
+        html += `<div class="${classes}"><span class="trace-text">${escapeHtml(item.text)}</span></div>`;
+    }
+
+    const finalStateStep = data.steps[data.steps.length - 1];
+    const finalState = finalStateStep && finalStateStep.state ? finalStateStep.state : '?';
+
+    if (isComplete) {
+        html += `<div class="trace-step completed trace-end"><span class="trace-text">Ended at ${escapeHtml(finalState)}</span></div>`;
+
+        const statusClass = data.is_accepted ? 'accepted' : 'rejected';
+        const statusText = data.is_accepted ? 'Accepted' : 'Rejected';
+        html += `<div class="trace-status ${statusClass}">${escapeHtml(statusText)}</div>`;
+    }
+
+    html += '</div>';
+    traceOutput.innerHTML = html;
 }
 
 function showSelectedDfaInfo() {
@@ -221,14 +313,17 @@ function showSelectedDfaInfo() {
     }
 
     updateStepCounter(-1, 0);
+    resetResultStateClasses();
 
     if (!selectedDfa) {
         dfaDescription.textContent = '';
-        resultText.textContent = '';
+        setResultText('');
         return;
     }
 
-    dfaDescription.textContent = selectedDfa.description || '';
+    dfaDescription.textContent = selectedDfa.description
+        ? `L(M) = A { ${selectedDfa.description} }`
+        : '';
     animationController.setDfa(selectedDfa);
 }
 
@@ -237,11 +332,16 @@ async function runDFA() {
     const userInput = stringInput.value.trim();
 
     if (!selectedDfaId) {
-        resultText.textContent = 'Please select a DFA.';
+        setResultText('Please select a DFA.');
         traceOutput.textContent = '';
         updateStepCounter(-1, 0);
         return;
     }
+
+    animationController.stop();
+    latestTraceData = null;
+    traceOutput.textContent = '';
+    updateStepCounter(-1, 0);
 
     const selectedDfa = dfaList.find((dfa) => dfa.id === selectedDfaId);
 
@@ -263,53 +363,51 @@ async function runDFA() {
             const message = data && data.error
                 ? data.error
                 : `Request failed with status ${response.status}.`;
-            resultText.textContent = `Error: ${message}`;
+            setResultText(`Error: ${message}`);
             traceOutput.textContent = '';
             updateStepCounter(-1, 0);
             return;
         }
 
         if (!data || typeof data !== 'object') {
-            resultText.textContent = 'Error: Invalid JSON response from server.';
-            traceOutput.textContent = 'No trace available.';
+            setResultText('Error: Invalid JSON response from server.');
+            traceOutput.textContent = '';
             updateStepCounter(-1, 0);
             return;
         }
 
         if (data.error) {
-            resultText.textContent = `Error: ${data.error}`;
+            setResultText(`Error: ${data.error}`);
             traceOutput.textContent = '';
             updateStepCounter(-1, 0);
             return;
         }
 
         if (!isValidRunResponse(data)) {
-            resultText.textContent = 'Error: Server returned malformed DFA result data.';
-            traceOutput.textContent = 'No trace available.';
+            setResultText('Error: Server returned malformed DFA result data.');
+            traceOutput.textContent = '';
             updateStepCounter(-1, 0);
             return;
         }
 
         latestTraceData = data;
-        if (data.is_accepted) {
-            resultText.textContent = 'Accepted';
-        } else if (typeof data.rejection_reason === 'string' && data.rejection_reason.length > 0) {
-            resultText.textContent = `Rejected: ${data.rejection_reason}`;
-        } else {
-            resultText.textContent = 'Rejected';
-        }
+        // Keep top status line empty for successful runs; final status is shown in trace output.
+        setResultText('');
+
+        renderTraceProgress(data, 0, false);
+        updateStepCounter(0, data.steps.length);
 
         if (selectedDfa) {
             animationController.setStepDelay(getStepDelayMs());
             animationController.loadTrace(selectedDfa, data);
             animationController.play();
         } else {
-            traceOutput.textContent = formatTraceOutput(data);
-            updateStepCounter(0, data.steps.length);
+            renderTraceProgress(data, data.steps.length - 1, true);
+            updateStepCounter(data.steps.length - 1, data.steps.length);
         }
     } catch (error) {
         console.error('Error running DFA:', error);
-        resultText.textContent = 'Request failed.';
+        setResultText('Request failed.');
         traceOutput.textContent = '';
         updateStepCounter(-1, 0);
     }
