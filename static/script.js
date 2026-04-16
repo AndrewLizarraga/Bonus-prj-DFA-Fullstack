@@ -11,7 +11,14 @@ const speedSlider = document.getElementById('speedSlider');
 const speedValue = document.getElementById('speedValue');
 const canvas = document.getElementById('dfaCanvas');
 
-const renderer = createDfaRenderer(canvas);
+const renderer = canvas
+    ? createDfaRenderer(canvas)
+    : {
+        renderDfa() {},
+        resetHighlights() {},
+        highlightState() {},
+        animateTransition() {},
+    };
 
 const fallbackAnimationController = {
     setStepDelay() {},
@@ -26,6 +33,20 @@ let animationController = fallbackAnimationController;
 let dfaList = [];
 let latestTraceData = null;
 
+function bootstrap() {
+    updateSpeedDisplay();
+    loadDFAs();
+    initAnimationController();
+
+    if (runBtn) {
+        runBtn.addEventListener('click', runDFA);
+    }
+
+    if (dfaSelect) {
+        dfaSelect.addEventListener('change', showSelectedDfaInfo);
+    }
+}
+
 function escapeHtml(value) {
     return String(value)
         .replace(/&/g, '&amp;')
@@ -35,14 +56,11 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    updateSpeedDisplay();
-    loadDFAs();
-    initAnimationController();
-});
-
-runBtn.addEventListener('click', runDFA);
-dfaSelect.addEventListener('change', showSelectedDfaInfo);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrap);
+} else {
+    bootstrap();
+}
 
 if (speedSlider) {
     speedSlider.addEventListener('input', () => {
@@ -116,6 +134,12 @@ async function parseJsonSafely(response) {
 }
 
 async function initAnimationController() {
+    if (!canvas) {
+        console.error('Animation controller setup skipped: #dfaCanvas was not found.');
+        animationController = fallbackAnimationController;
+        return;
+    }
+
     try {
         const { createAnimationController } = await import('/static/animationController.js?v=4');
 
@@ -140,7 +164,7 @@ async function initAnimationController() {
             }
         });
 
-        const selectedDfaId = dfaSelect.value;
+        const selectedDfaId = dfaSelect ? dfaSelect.value : '';
         const selectedDfa = dfaList.find((dfa) => dfa.id === selectedDfaId);
 
         if (selectedDfa) {
@@ -187,6 +211,11 @@ function isValidRunResponse(data) {
 }
 
 async function loadDFAs() {
+    if (!dfaSelect) {
+        console.error('Cannot load DFAs: #dfaSelect was not found.');
+        return;
+    }
+
     try {
         const response = await fetch('/dfas');
         const data = await parseJsonSafely(response);
@@ -302,6 +331,10 @@ function renderTraceProgress(data, activeIndex = 0, isComplete = false) {
 }
 
 function showSelectedDfaInfo() {
+    if (!dfaSelect || !dfaDescription) {
+        return;
+    }
+
     const selectedDfaId = dfaSelect.value;
     const selectedDfa = dfaList.find((dfa) => dfa.id === selectedDfaId);
 
@@ -328,6 +361,11 @@ function showSelectedDfaInfo() {
 }
 
 async function runDFA() {
+    if (!dfaSelect || !stringInput || !traceOutput) {
+        setResultText('Interface is not ready. Please refresh the page.');
+        return;
+    }
+
     const selectedDfaId = dfaSelect.value;
     const userInput = stringInput.value.trim();
 
