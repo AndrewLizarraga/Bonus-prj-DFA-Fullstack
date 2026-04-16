@@ -27,10 +27,24 @@
       />
 
       <button id="runBtn" type="button">Run DFA</button>
+
+      <div class="speed-control">
+        <label for="speedSlider">Step Speed:</label>
+        <input
+          id="speedSlider"
+          type="range"
+          min="0.5"
+          max="5"
+          step="0.1"
+          value="0.9"
+        />
+        <span id="speedValue">0.9s</span>
+      </div>
     </section>
 
     <section class="results" aria-label="Simulation results">
       <p id="dfaDescription"></p>
+      <p><span id="stepCounter">Step: 0</span></p>
       <p id="resultText"></p>
       <pre id="traceOutput"></pre>
     </section>

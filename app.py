@@ -83,13 +83,29 @@ def simulate_dfa(dfa_name: str, input_string: str) -> dict:
 
     for i, ch in enumerate(input_string):
         if ch not in alphabet:
-            return {"error": f"Invalid input symbol '{ch}' at position {i}"}
+            return {
+                "dfa": dfa_name,
+                "input_string": input_string,
+                "is_accepted": False,
+                "steps": steps,
+                "rejected_at_step": len(steps) - 1,
+                "rejected_state": current_state,
+                "accepted_state": None,
+                "rejection_reason": f"Invalid input symbol '{ch}' at position {i}",
+            }
 
         next_state = transitions.get((current_state, ch))
 
         if next_state is None:
             return {
-                "error": f"No transition defined for state '{current_state}' on symbol '{ch}'"
+                "dfa": dfa_name,
+                "input_string": input_string,
+                "is_accepted": False,
+                "steps": steps,
+                "rejected_at_step": len(steps) - 1,
+                "rejected_state": current_state,
+                "accepted_state": None,
+                "rejection_reason": f"No transition defined for state '{current_state}' on symbol '{ch}'",
             }
 
         steps.append(
@@ -111,6 +127,10 @@ def simulate_dfa(dfa_name: str, input_string: str) -> dict:
         "input_string": input_string,
         "is_accepted": is_accepted,
         "steps": steps,
+        "accepted_state": current_state if is_accepted else None,
+        "rejected_state": None if is_accepted else current_state,
+        "rejected_at_step": None if is_accepted else len(steps) - 1,
+        "rejection_reason": None,
     }
 
 

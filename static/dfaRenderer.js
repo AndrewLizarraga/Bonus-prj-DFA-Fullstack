@@ -75,20 +75,41 @@ export function createDfaRenderer(canvas) {
             isAccept = false,
             isStart = false,
             isActive = false,
+            isAccepted = false,
+            isRejected = false,
         } = options;
+
+        let fillColor = 'white';
+        let strokeColor = 'black';
+        let lineWidth = 2;
+
+        // Priority: rejected > accepted > active > default.
+        if (isRejected) {
+            fillColor = '#fee2e2';
+            strokeColor = '#dc2626';
+            lineWidth = 4;
+        } else if (isAccepted) {
+            fillColor = '#dcfce7';
+            strokeColor = '#16a34a';
+            lineWidth = 4;
+        } else if (isActive) {
+            fillColor = '#dbeafe';
+            strokeColor = '#2563eb';
+            lineWidth = 4;
+        }
 
         ctx.beginPath();
         ctx.arc(position.x, position.y, NODE_RADIUS, 0, 2 * Math.PI);
-        ctx.fillStyle = isActive ? 'lightblue' : 'white';
+        ctx.fillStyle = fillColor;
         ctx.fill();
-        ctx.lineWidth = isActive ? 4 : 2;
-        ctx.strokeStyle = isActive ? 'blue' : 'black';
+        ctx.lineWidth = lineWidth;
+        ctx.strokeStyle = strokeColor;
         ctx.stroke();
 
         if (isAccept) {
             ctx.beginPath();
             ctx.arc(position.x, position.y, NODE_RADIUS - 6, 0, 2 * Math.PI);
-            ctx.strokeStyle = 'black';
+            ctx.strokeStyle = isRejected ? '#dc2626' : isAccepted ? '#16a34a' : 'black';
             ctx.lineWidth = 2;
             ctx.stroke();
         }
@@ -115,7 +136,7 @@ export function createDfaRenderer(canvas) {
         ctx.beginPath();
         ctx.arc(loopCenterX, loopCenterY, loopRadius, loopRadius, startAngle,endAngle );
         ctx.lineWidth = isActive ? 4 : 2;
-        ctx.strokeStyle = isActive ? '#dc2626' : '#374151';
+        ctx.strokeStyle = isActive ? '#2563eb' : '#374151';
         ctx.stroke();
 
         //arow head near the end of the loop
@@ -128,7 +149,7 @@ export function createDfaRenderer(canvas) {
 
         ctx.font = '14px Arial';
         ctx.textAlign = 'center';
-        ctx.fillStyle = isActive ? '#dc2626' : '#111827';
+        ctx.fillStyle = isActive ? '#2563eb' : '#111827';
         ctx.fillText(label, loopCenterX, loopCenterY - loopRadius - 10);
     }
 
@@ -146,7 +167,7 @@ export function createDfaRenderer(canvas) {
             y - size * Math.sin(angle + Math.PI / 6)
         );
         ctx.closePath();
-        ctx.fillStyle = isActive ? '#dc2626' : '#374151';
+        ctx.fillStyle = isActive ? '#2563eb' : '#374151';
         ctx.fill();
     }
 
@@ -164,7 +185,7 @@ export function createDfaRenderer(canvas) {
         ctx.moveTo(startX, startY);
         ctx.lineTo(endX, endY);
         ctx.lineWidth = isActive ? 4 : 2;
-        ctx.strokeStyle = isActive ? '#dc2626' : '#374151';
+        ctx.strokeStyle = isActive ? '#2563eb' : '#374151';
         ctx.stroke();
 
         drawArrowHead(endX, endY, angle, isActive);
@@ -174,7 +195,7 @@ export function createDfaRenderer(canvas) {
 
         ctx.font = '14px Arial';
         ctx.textAlign = 'center';
-        ctx.fillStyle = isActive ? '#dc2626' : '#111827';
+        ctx.fillStyle = isActive ? '#2563eb' : '#111827';
         ctx.fillText(label, labelX, labelY);
     }
 
@@ -206,7 +227,7 @@ export function createDfaRenderer(canvas) {
         ctx.moveTo(startX, startY);
         ctx.quadraticCurveTo(controlX, controlY, endX, endY);
         ctx.lineWidth = isActive ? 4 : 2;
-        ctx.strokeStyle = isActive ? '#dc2626' : '#374151';
+        ctx.strokeStyle = isActive ? '#2563eb' : '#374151';
         ctx.stroke();
 
         drawArrowHead(endX, endY, endAngle, isActive);
@@ -219,7 +240,7 @@ export function createDfaRenderer(canvas) {
 
         ctx.font = '14px Arial';
         ctx.textAlign = 'center';
-        ctx.fillStyle = isActive ? '#dc2626' : '#111827';
+        ctx.fillStyle = isActive ? '#2563eb' : '#111827';
         ctx.fillText(label, labelX, labelY);
     }
 
@@ -353,6 +374,8 @@ groupedEdges.forEach((edge) => {
                 isStart: stateId === start_state,
                 isAccept: accept_states.includes(stateId),
                 isActive: highlight.activeState === stateId,
+                isAccepted: highlight.acceptedState === stateId,
+                isRejected: highlight.rejectedState === stateId,
             });
         });
     }
