@@ -1,0 +1,40 @@
+.app-shell {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: Arial, sans-serif;
+}
+
+.controls {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.controls label {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.controls input,
+.controls select,
+.controls button {
+  padding: 0.65rem;
+  font-size: 1rem;
+}
+
+.results {
+  margin-top: 1.5rem;
+}
+
+.results pre {
+  background: #f4f4f4;
+  padding: 1rem;
+  overflow-x: auto;
+  border-radius: 8px;
+}
+
+.error-text {
+  color: #b00020;
+  font-weight: bold;
+}
