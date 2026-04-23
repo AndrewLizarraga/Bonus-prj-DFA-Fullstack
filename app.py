@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Set, Tuple
+from typing import Dict, Set, Tuple, Literal
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,8 +24,9 @@ app.add_middleware(
 )
 
 # Request model
-class DFARequest(BaseModel):
-    dfa: str
+class AutomatonRequest(BaseModel):
+    automaton_type: Literal["dfa", "pda"]
+    automaton_id: str
     input_string: str
 
 
@@ -140,6 +141,38 @@ DFAS: Dict[str, Dict[str, object]] = {
 },
 }
 
+PDAS: Dict[str, Dict[str, object]] = {
+    "pda1": {
+        "description": "Strings of the form 0^n1^n",
+        "alphabet": {"0", "1"},
+        "stack_alphabet": {"$", "0"},
+        "states": {"q0", "q1", "q2"},
+        "start_state": "q0",
+        "start_stack_symbol": "$",
+        "accept_states": {"q2"},
+        "transitions": {
+            # Read 0, push 0 above $
+            ("q0", "0", "$"): ("q0", ["$", "0"]),
+
+            # Read 0, push another 0
+            ("q0", "0", "0"): ("q0", ["0", "0"]),
+
+            # Read first 1, pop 0, switch to matching state
+            ("q0", "1", "0"): ("q1", []),
+
+            # Read another 1, pop 0
+            ("q1", "1", "0"): ("q1", []),
+
+            # Read epsilon, stack is only $, accept
+            ("q0", "", "$"): ("q2", ["$"]),
+
+            # Read epsilon, stack is only $, accept
+            ("q1", "", "$"): ("q2", ["$"]),
+        },
+    },
+}
+
+
 
 def simulate_dfa(dfa_name: str, input_string: str) -> dict:
     if dfa_name not in DFAS:
@@ -166,7 +199,8 @@ def simulate_dfa(dfa_name: str, input_string: str) -> dict:
     for i, ch in enumerate(input_string):
         if ch not in alphabet:
             return {
-                "dfa": dfa_name,
+                "automaton_type": "dfa",
+                "automaton_id": dfa_name,
                 "input_string": input_string,
                 "is_accepted": False,
                 "steps": steps,
@@ -180,7 +214,8 @@ def simulate_dfa(dfa_name: str, input_string: str) -> dict:
 
         if next_state is None:
             return {
-                "dfa": dfa_name,
+                "automaton_type": "dfa",
+                "automaton_id": dfa_name,
                 "input_string": input_string,
                 "is_accepted": False,
                 "steps": steps,
@@ -205,7 +240,8 @@ def simulate_dfa(dfa_name: str, input_string: str) -> dict:
     is_accepted = current_state in accept_states
 
     return {
-        "dfa": dfa_name,
+        "automaton_type": "dfa",
+        "automaton_id": dfa_name,
         "input_string": input_string,
         "is_accepted": is_accepted,
         "steps": steps,
@@ -215,15 +251,159 @@ def simulate_dfa(dfa_name: str, input_string: str) -> dict:
         "rejection_reason": None,
     }
 
+def simulate_pda(pda_name: str, input_string: str) -> dict:
+    if pda_name not in PDAS:
+        return {"error": "PDA not found"}
 
-@app.get("/")
-def serve_index():
-    return FileResponse(STATIC_DIR / "index.html")
+    pda = PDAS[pda_name]
+    alphabet: Set[str] = pda["alphabet"]
+    transitions: Dict[Tuple[str, str, str], Tuple[str, list[str]]] = pda["transitions"]
+    start_state: str = pda["start_state"]
+    start_stack_symbol: str = pda["start_stack_symbol"]
+    accept_states: Set[str] = pda["accept_states"]
 
+    current_state = start_state
 
-@app.post("/run-dfa")
-def run_dfa(payload: DFARequest):
-    return simulate_dfa(payload.dfa, payload.input_string)
+    # Stack convention:
+    # - Python list
+    # - last item is the top of the stack
+    stack = [start_stack_symbol]
+
+    steps = [
+        {
+            "step": 0,
+            "state": current_state,
+            "remaining": input_string,
+            "stack": stack.copy(),
+            "from_state": None,
+            "to_state": None,
+            "read_symbol": None,
+            "stack_top_before": stack[-1] if stack else None,
+            "stack_action": "initialize",
+        }
+    ]
+
+    for i, ch in enumerate(input_string):
+        if ch not in alphabet:
+            return {
+                "automaton_type": "pda",
+                "automaton_id": pda_name,
+                "input_string": input_string,
+                "is_accepted": False,
+                "steps": steps,
+                "rejected_at_step": len(steps) - 1,
+                "rejected_state": current_state,
+                "accepted_state": None,
+                "rejection_reason": f"Invalid input symbol '{ch}' at position {i}",
+            }
+
+        if not stack:
+            return {
+                "automaton_type": "pda",
+                "automaton_id": pda_name,
+                "input_string": input_string,
+                "is_accepted": False,
+                "steps": steps,
+                "rejected_at_step": len(steps) - 1,
+                "rejected_state": current_state,
+                "accepted_state": None,
+                "rejection_reason": "Stack became empty unexpectedly",
+            }
+
+        stack_top = stack[-1]
+        transition = transitions.get((current_state, ch, stack_top))
+
+        if transition is None:
+            return {
+                "automaton_type": "pda",
+                "automaton_id": pda_name,
+                "input_string": input_string,
+                "is_accepted": False,
+                "steps": steps,
+                "rejected_at_step": len(steps) - 1,
+                "rejected_state": current_state,
+                "accepted_state": None,
+                "rejection_reason": (
+                    f"No transition defined for state '{current_state}', "
+                    f"input '{ch}', and stack top '{stack_top}'"
+                ),
+            }
+
+        next_state, push_symbols = transition
+
+        # Pop the current stack top because the transition matched it
+        stack.pop()
+
+        # Push replacement symbols back in order.
+        # Example: ["$", "0"] becomes stack bottom "$", top "0"
+        for symbol in push_symbols:
+            stack.append(symbol)
+
+        steps.append(
+            {
+                "step": i + 1,
+                "state": next_state,
+                "remaining": input_string[i + 1:],
+                "stack": stack.copy(),
+                "from_state": current_state,
+                "to_state": next_state,
+                "read_symbol": ch,
+                "stack_top_before": stack_top,
+                "stack_action": f"pop '{stack_top}', push {push_symbols}",
+            }
+        )
+
+        current_state = next_state
+
+    # After all input is read, try one epsilon transition
+    if stack:
+        stack_top = stack[-1]
+        epsilon_transition = transitions.get((current_state, "", stack_top))
+
+        if epsilon_transition is not None:
+            next_state, push_symbols = epsilon_transition
+
+            stack.pop()
+            for symbol in push_symbols:
+                stack.append(symbol)
+
+            steps.append(
+                {
+                    "step": len(steps),
+                    "state": next_state,
+                    "remaining": "",
+                    "stack": stack.copy(),
+                    "from_state": current_state,
+                    "to_state": next_state,
+                    "read_symbol": "",
+                    "stack_top_before": stack_top,
+                    "stack_action": f"epsilon: pop '{stack_top}', push {push_symbols}",
+                }
+            )
+
+            current_state = next_state
+
+    is_accepted = current_state in accept_states
+
+    return {
+        "automaton_type": "pda",
+        "automaton_id": pda_name,
+        "input_string": input_string,
+        "is_accepted": is_accepted,
+        "steps": steps,
+        "accepted_state": current_state if is_accepted else None,
+        "rejected_state": None if is_accepted else current_state,
+        "rejected_at_step": None if is_accepted else len(steps) - 1,
+        "rejection_reason": None if is_accepted else "Input finished but PDA was not in an accept state",
+    }
+
+@app.post("/run-automaton")
+def run_automaton(payload: AutomatonRequest):
+    if payload.automaton_type == "dfa":
+        return simulate_dfa(payload.automaton_id, payload.input_string)
+    elif payload.automaton_type == "pda":
+        return simulate_pda(payload.automaton_id, payload.input_string)
+    return {"error": "Unsupported automaton type"}
 
 
 @app.get("/dfas")
@@ -257,3 +437,34 @@ def get_dfas():
         })
 
     return {"dfas": dfa_list}
+
+@app.get("/pdas")
+def get_pdas():
+    pda_list = []
+
+    for pda_name, pda_data in PDAS.items():
+        transitions = [
+            {
+                "from_state": from_state,
+                "input_symbol": input_symbol,
+                "stack_top": stack_top,
+                "to_state": to_state,
+                "push": push_symbols,
+            }
+            for (from_state, input_symbol, stack_top), (to_state, push_symbols)
+            in pda_data["transitions"].items()
+        ]
+
+        pda_list.append({
+            "id": pda_name,
+            "description": pda_data["description"],
+            "states": sorted(pda_data["states"]),
+            "alphabet": sorted(pda_data["alphabet"]),
+            "stack_alphabet": sorted(pda_data["stack_alphabet"]),
+            "start_state": pda_data["start_state"],
+            "start_stack_symbol": pda_data["start_stack_symbol"],
+            "accept_states": sorted(pda_data["accept_states"]),
+            "transitions": transitions,
+        })
+
+    return {"pdas": pda_list}
