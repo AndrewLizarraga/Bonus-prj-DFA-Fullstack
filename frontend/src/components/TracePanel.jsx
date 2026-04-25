@@ -1,6 +1,6 @@
 // src/components/TracePanel.jsx
 
-function TracePanel({ result }) {
+function TracePanel({ result, activeStepIndex }) {
   if (!result) {
     return (
       <div className="card p-3">
@@ -9,6 +9,8 @@ function TracePanel({ result }) {
       </div>
     );
   }
+
+  const visibleSteps = result.steps.slice(0, activeStepIndex + 1);
 
   return (
     <div className="card p-3">
@@ -21,14 +23,8 @@ function TracePanel({ result }) {
         </span>
       </div>
 
-      {result.rejection_reason && (
-        <div className="alert alert-danger py-2">
-          {result.rejection_reason}
-        </div>
-      )}
-
       <div className="trace-list">
-        {result.steps.map((step) => (
+        {visibleSteps.map((step) => (
           <div key={step.step} className="border rounded p-2 mb-2">
             <strong>Step {step.step}</strong>
 
@@ -45,16 +41,18 @@ function TracePanel({ result }) {
               <div>Read: {step.read_symbol || "ε"}</div>
             )}
 
-            {step.stack && (
-              <div>Stack: [{step.stack.join(", ")}]</div>
-            )}
+            {step.stack && <div>Stack: [{step.stack.join(", ")}]</div>}
 
-            {step.stack_action && (
-              <div>Stack Action: {step.stack_action}</div>
-            )}
+            {step.stack_action && <div>Stack Action: {step.stack_action}</div>}
           </div>
         ))}
       </div>
+
+      {activeStepIndex === result.steps.length - 1 && result.rejection_reason && (
+        <div className="alert alert-danger py-2 mt-3">
+          {result.rejection_reason}
+        </div>
+      )}
     </div>
   );
 }

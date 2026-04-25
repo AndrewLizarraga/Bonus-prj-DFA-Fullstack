@@ -44,3 +44,24 @@ export async function runAutomaton(selectedType, automatonId, inputString) {
 
   return data;
 }
+
+export async function getAutomataOptions(selectedType) {
+  if (selectedType !== "dfa" && selectedType !== "pda") {
+    return [];
+  }
+
+  const endpoint = selectedType === "dfa" ? "/dfas" : "/pdas";
+
+  console.log("Fetching automata options from:", `${API_BASE_URL}${endpoint}`);
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`);
+  const data = await response.json();
+
+  console.log("Automata options returned:", data);
+
+  if (!response.ok || data.error) {
+    throw new Error(data.error || "Failed to fetch automata options");
+  }
+
+  return selectedType === "dfa" ? data.dfas : data.pdas;
+}
