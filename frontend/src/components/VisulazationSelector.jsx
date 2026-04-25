@@ -1,8 +1,13 @@
 import { useState } from "react";
 
-function VisualizationSelector({ selectedType, onTypeChange }) {
-  const [selectedAutomaton, setSelectedAutomaton] = useState("");
-  const [ stepSpeed, setStepSpeed] = useState(1);
+function VisulazationSelector({
+  selectedType,
+  onTypeChange,
+  automataOptions,
+  selectedAutomaton,
+  onAutomatonChange,
+}) {
+  const [stepSpeed, setStepSpeed] = useState(1);
 
   const hasSelectedType = selectedType === "dfa" || selectedType === "pda";
   const hasSelectedAutomaton = selectedAutomaton !== "";
@@ -10,6 +15,8 @@ function VisualizationSelector({ selectedType, onTypeChange }) {
   const selectedLabel =
     selectedType === "dfa" ? "DFA" : selectedType === "pda" ? "PDA" : "";
 
+    console.log("selectedType:", selectedType);
+    console.log("automataOptions:", automataOptions);
   return (
     <div className="container py-4">
       <div className="card shadow-sm mx-auto" style={{ maxWidth: "500px" }}>
@@ -24,7 +31,7 @@ function VisualizationSelector({ selectedType, onTypeChange }) {
             value={selectedType}
             onChange={(event) => {
               onTypeChange(event.target.value);
-              setSelectedAutomaton("");
+              onAutomatonChange("");
             }}
           >
             <option value="">Select an option</option>
@@ -43,28 +50,21 @@ function VisualizationSelector({ selectedType, onTypeChange }) {
                 id="automatonSelect"
                 className="form-select mb-3"
                 value={selectedAutomaton}
-                onChange={(event) => setSelectedAutomaton(event.target.value)}
+                onChange={(event) => onAutomatonChange(event.target.value)}
               >
                 <option value="">Select a {selectedLabel}</option>
-                <option value="example1">Example 1</option>
-                <option value="example2">Example 2</option>
+
+                {automataOptions.map((automaton) => (
+                  <option key={automaton.id} value={automaton.id}>
+                    {automaton.id} - {automaton.description}
+                  </option>
+                ))}
               </select>
             </>
           )}
 
           {hasSelectedAutomaton && (
             <>
-              <label htmlFor="inputString" className="form-label fw-semibold">
-                Enter input string
-              </label>
-
-              <input
-                id="inputString"
-                type="text"
-                className="form-control"
-                placeholder="Example: 0101"
-              />
-
               <label htmlFor="speedRange" className="form-label fw-semibold">
                 Step Speed: {stepSpeed}x
               </label>
@@ -87,4 +87,4 @@ function VisualizationSelector({ selectedType, onTypeChange }) {
   );
 }
 
-export default VisualizationSelector;
+export default VisulazationSelector;
