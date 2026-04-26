@@ -5,6 +5,7 @@ import TracePanel from "./components/TracePanel";
 import StackPanel from "./components/StackPanel";
 import { runAutomaton, getAutomataOptions } from "./services/automatonApi";
 import useStepPlayback from "./hooks/useStepPlayback";
+import { normalizeAutomaton } from "./utils/normalizeAutomaton";
 
 function App() {
   const [selctedType, setSelectedType] = useState("");
@@ -16,8 +17,18 @@ function App() {
   const [stepSpeed, setStepSpeed] = useState(1);
 
   const { activeStepIndex } = useStepPlayback(result, stepSpeed);
+  
 
   const hasSelectedType = selctedType === "dfa" || selctedType === "pda";
+  const selectedAutomatonObject = automataOptions.find(
+  (a) => a.id === selectedAutomaton
+);
+
+const drawableAutomaton =
+  selectedAutomatonObject && selctedType
+    ? normalizeAutomaton(selctedType, selectedAutomatonObject)
+    : null;
+
   useEffect(() => {
   async function fetchAutomataOptions() {
     try {
@@ -103,7 +114,7 @@ function App() {
             <div className="container-fluid mt-4 px-5">
               <div className="row g-3">
                 <div className={selctedType === "pda" ? "col-md-9" : "col-12"}>
-                  <AnimationCanvas result={result} activeStepIndex={activeStepIndex} />
+                  <AnimationCanvas automaton={drawableAutomaton} result={result} activeStepIndex={activeStepIndex} />
 
                   <div className="mt-3">
                     <TracePanel result={result} activeStepIndex={activeStepIndex} />
