@@ -1,7 +1,7 @@
 // src/services/automatonApi.js
 
 const API_BASE_URL =
-  "https://fictional-system-qvvpprjp47qh6v7-8000.app.github.dev";
+  "https://bonus-prj-dfa-fullstack-2-backend.onrender.com";
 
 export async function runAutomaton(selectedType, automatonId, inputString) {
   console.log("runAutomaton called with:", {
