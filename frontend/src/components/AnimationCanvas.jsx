@@ -8,7 +8,6 @@ function AnimationCanvas({ automaton, result, activeStepIndex }) {
     if (!canvasRef.current || !automaton) return;
 
     const renderer = createAutomatonRenderer(canvasRef.current);
-
     const step = result?.steps?.[activeStepIndex];
 
     const highlight = step

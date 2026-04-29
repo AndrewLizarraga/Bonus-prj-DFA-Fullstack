@@ -161,6 +161,40 @@ PDAS: Dict[str, Dict[str, object]] = {
             ("q1", "", "$"): ("q2", ["$"]),
         },
     },
+
+    "pda2": {
+        "description": "Palindromes with middle marker c, like 01c10",
+        "alphabet": {"0", "1", "c"},
+        "stack_alphabet": {"$", "0", "1"},
+        "states": {"q0", "q1", "q2"},
+        "start_state": "q0",
+        "start_stack_symbol": "$",
+        "accept_states": {"q2"},
+        "transitions": {
+            # Before c: push each 0 or 1 onto the stack
+            ("q0", "0", "$"): ("q0", ["$", "0"]),
+            ("q0", "1", "$"): ("q0", ["$", "1"]),
+
+            ("q0", "0", "0"): ("q0", ["0", "0"]),
+            ("q0", "1", "0"): ("q0", ["0", "1"]),
+
+            ("q0", "0", "1"): ("q0", ["1", "0"]),
+            ("q0", "1", "1"): ("q0", ["1", "1"]),
+
+            # Read the middle marker c and switch to matching mode.
+            # Keep the current stack top unchanged.
+            ("q0", "c", "$"): ("q1", ["$"]),
+            ("q0", "c", "0"): ("q1", ["0"]),
+            ("q0", "c", "1"): ("q1", ["1"]),
+
+            # After c: input must match the stack top
+            ("q1", "0", "0"): ("q1", []),
+            ("q1", "1", "1"): ("q1", []),
+
+            # Accept when input is finished and only $ remains
+            ("q1", "", "$"): ("q2", ["$"]),
+        },
+    },
 }
 
 

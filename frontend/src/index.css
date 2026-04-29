@@ -28,6 +28,102 @@
   @media (max-width: 1024px) {
     font-size: 16px;
   }
+
+}
+
+.pda-grid-card {
+  text-align: left;
+}
+
+.pda-grid {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+}
+
+.pda-grid-cell {
+  aspect-ratio: 1 / 1;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  font-size: 0.75rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pda-grid-cell.unfilled {
+  background: var(--social-bg);
+  color: var(--text);
+}
+
+.pda-grid-cell.filled {
+  color: white;
+  font-weight: 600;
+}
+
+.grid-state-q0 {
+  background: #0d6efd;
+}
+
+.grid-state-q1 {
+  background: #6f42c1;
+}
+
+.grid-state-q2 {
+  background: #198754;
+}
+
+.grid-state-q3 {
+  background: #fd7e14;
+}
+
+.grid-state-default {
+  background: #6c757d;
+}
+
+.current-cell {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.7);
+  z-index: 2;
+}
+
+.cell-step {
+  font-size: 0.7rem;
+}
+
+.cell-state {
+  font-size: 0.8rem;
+}
+
+.cell-symbol {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.current-step-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--social-bg);
+}
+
+.grid-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.85rem;
+}
+
+.legend-box {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  margin-right: 4px;
+  vertical-align: middle;
 }
 
 @media (prefers-color-scheme: dark) {

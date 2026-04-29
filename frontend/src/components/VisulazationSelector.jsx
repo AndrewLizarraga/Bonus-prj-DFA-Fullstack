@@ -1,13 +1,15 @@
-import { useState } from "react";
+
 
 function VisulazationSelector({
+  
   selectedType,
   onTypeChange,
   automataOptions,
   selectedAutomaton,
   onAutomatonChange,
+  stepSpeed,
+  onStepSpeedChange
 }) {
-  const [stepSpeed, setStepSpeed] = useState(1);
 
   const hasSelectedType = selectedType === "dfa" || selectedType === "pda";
   const hasSelectedAutomaton = selectedAutomaton !== "";
@@ -72,12 +74,12 @@ function VisulazationSelector({
               <input
                 type="range"
                 className="form-range"
-                min="0"
+                min="0.25"
                 max="5"
                 step="0.25"
                 id="speedRange"
                 value={stepSpeed}
-                onChange={(event) => setStepSpeed(event.target.value)}
+                onChange={(event) => onStepSpeedChange(Number(event.target.value))}
               />
             </>
           )}

@@ -3,55 +3,60 @@ import VisulazationSelector from "./components/VisulazationSelector";
 import AnimationCanvas from "./components/AnimationCanvas";
 import TracePanel from "./components/TracePanel";
 import StackPanel from "./components/StackPanel";
+import PdaGridWalkCanvas from "./components/PdaGridWalkCanvas";
 import { runAutomaton, getAutomataOptions } from "./services/automatonApi";
 import useStepPlayback from "./hooks/useStepPlayback";
 import { normalizeAutomaton } from "./utils/normalizeAutomaton";
 
 function App() {
-  const [selctedType, setSelectedType] = useState("");
+  const [userSelectedType, setSelectedType] = useState("");
   const [selectedAutomaton, setSelectedAutomaton] = useState("");
   const [automataOptions, setAutomataOptions] = useState([]);
   const [inputString, setInputString] = useState("");
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [stepSpeed, setStepSpeed] = useState(1);
+  const [renderMode, setRenderMode] = useState("diagram");
 
   const { activeStepIndex } = useStepPlayback(result, stepSpeed);
-  
 
-  const hasSelectedType = selctedType === "dfa" || selctedType === "pda";
+  const hasSelectedType =
+    userSelectedType === "dfa" || userSelectedType === "pda";
+
   const selectedAutomatonObject = automataOptions.find(
-  (a) => a.id === selectedAutomaton
-);
+    (a) => a.id === selectedAutomaton
+  );
 
-const drawableAutomaton =
-  selectedAutomatonObject && selctedType
-    ? normalizeAutomaton(selctedType, selectedAutomatonObject)
-    : null;
+  const drawableAutomaton =
+    selectedAutomatonObject && userSelectedType
+      ? normalizeAutomaton(userSelectedType, selectedAutomatonObject)
+      : null;
 
   useEffect(() => {
-  async function fetchAutomataOptions() {
-    try {
-      const options = await getAutomataOptions(selctedType);
+    async function fetchAutomataOptions() {
+      try {
+        const options = await getAutomataOptions(userSelectedType);
 
-      console.log("Setting automata options:", options);
+        console.log("Setting automata options:", options);
 
-      setAutomataOptions(options);
-      setSelectedAutomaton("");
-    } catch (err) {
-      console.error("Failed to fetch automata options:", err.message);
-      setAutomataOptions([]);
+        setAutomataOptions(options);
+        setSelectedAutomaton("");
+        setResult(null);
+        setRenderMode("diagram");
+      } catch (err) {
+        console.error("Failed to fetch automata options:", err.message);
+        setAutomataOptions([]);
+      }
     }
-  }
 
-  fetchAutomataOptions();
-}, [selctedType]);
+    fetchAutomataOptions();
+  }, [userSelectedType]);
 
   async function handleRunAutomaton() {
     console.log("Run button clicked");
 
     if (!hasSelectedType) {
-      console.warn("Not running API because selected type is:", selctedType);
+      console.warn("Not running API because selected type is:", userSelectedType);
       return;
     }
 
@@ -65,7 +70,7 @@ const drawableAutomaton =
       setResult(null);
 
       const data = await runAutomaton(
-        selctedType,
+        userSelectedType,
         selectedAutomaton,
         inputString
       );
@@ -82,7 +87,7 @@ const drawableAutomaton =
     <>
       <main>
         <VisulazationSelector
-          selectedType={selctedType}
+          selectedType={userSelectedType}
           onTypeChange={setSelectedType}
           automataOptions={automataOptions}
           selectedAutomaton={selectedAutomaton}
@@ -90,9 +95,10 @@ const drawableAutomaton =
           stepSpeed={stepSpeed}
           onStepSpeedChange={setStepSpeed}
         />
-        {selctedType === "dfa" && <div>DFA Visualizer</div>}
-        {selctedType === "pda" && <div>PDA Visualizer</div>}
-        {selctedType === "other" && <div>Other Thing</div>}
+
+        {userSelectedType === "dfa" && <div>DFA Visualizer</div>}
+        {userSelectedType === "pda" && <div>PDA Visualizer</div>}
+        {userSelectedType === "other" && <div>Other Thing</div>}
 
         {hasSelectedType && (
           <>
@@ -104,7 +110,10 @@ const drawableAutomaton =
                 placeholder="Enter input string, example: 0011"
               />
 
-              <button className="btn btn-primary btn-sm" onClick={handleRunAutomaton}>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleRunAutomaton}
+              >
                 Run Automaton
               </button>
 
@@ -113,17 +122,51 @@ const drawableAutomaton =
 
             <div className="container-fluid mt-4 px-5">
               <div className="row g-3">
-                <div className={selctedType === "pda" ? "col-md-9" : "col-12"}>
-                  <AnimationCanvas automaton={drawableAutomaton} result={result} activeStepIndex={activeStepIndex} />
+                <div className={userSelectedType === "pda" ? "col-md-9" : "col-12"}>
+                  {userSelectedType === "pda" && (
+                    <div className="d-flex justify-content-end mb-2">
+                      <button
+                        className="btn btn-outline-secondary btn-sm"
+                        onClick={() =>
+                          setRenderMode((currentMode) =>
+                            currentMode === "diagram" ? "grid" : "diagram"
+                          )
+                        }
+                      >
+                        {renderMode === "diagram"
+                          ? "Switch to Grid Walk"
+                          : "Switch to Diagram"}
+                      </button>
+                    </div>
+                  )}
+
+                  {userSelectedType === "pda" && renderMode === "grid" ? (
+                    <PdaGridWalkCanvas
+                      result={result}
+                      activeStepIndex={activeStepIndex}
+                    />
+                  ) : (
+                    <AnimationCanvas
+                      automaton={drawableAutomaton}
+                      result={result}
+                      activeStepIndex={activeStepIndex}
+                    />
+                  )}
 
                   <div className="mt-3">
-                    <TracePanel result={result} activeStepIndex={activeStepIndex} />
+                    <TracePanel
+                      result={result}
+                      activeStepIndex={activeStepIndex}
+                    />
                   </div>
                 </div>
 
-                {selctedType === "pda" && (
+                {userSelectedType === "pda" && (
                   <div className="col-md-3">
-                    <StackPanel result={result} activeStepIndex={activeStepIndex} />
+                    <StackPanel
+                      result={result}
+                      activeStepIndex={activeStepIndex}
+                    />
                   </div>
                 )}
               </div>
