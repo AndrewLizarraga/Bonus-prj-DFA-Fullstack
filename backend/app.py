@@ -195,6 +195,44 @@ PDAS: Dict[str, Dict[str, object]] = {
             ("q1", "", "$"): ("q2", ["$"]),
         },
     },
+    "pda3": {
+        "description": "Strings of the form 0^n1^m2^m3^n, like 00112233",
+        "alphabet": {"0", "1", "2", "3"},
+        "stack_alphabet": {"$", "0", "1"},
+        "states": {"q0", "q1", "q2", "q3"},
+        "start_state": "q0",
+        "start_stack_symbol": "$",
+        "accept_states": {"q3"},
+        "transitions": {
+        # q0: Read 0s and push one 0 for each 0
+            ("q0", "0", "$"): ("q0", ["$", "0"]),
+            ("q0", "0", "0"): ("q0", ["0", "0"]),
+
+        # Read first 1 and switch to q1.
+        # Keep 0s underneath and push 1s above them.
+            ("q0", "1", "0"): ("q1", ["0", "1"]),
+
+        # q1: Read more 1s and push one 1 for each 1
+            ("q1", "1", "1"): ("q1", ["1", "1"]),
+
+        # Read first 2 and switch to q2.
+        # Pop one 1 for each 2.
+            ("q1", "2", "1"): ("q2", []),
+
+        # q2: Read more 2s and pop one 1 for each 2
+            ("q2", "2", "1"): ("q2", []),
+
+        # Read first 3 and switch to q3.
+        # Pop one 0 for each 3.
+            ("q2", "3", "0"): ("q3", []),
+
+        # q3: Read more 3s and pop one 0 for each 3
+            ("q3", "3", "0"): ("q3", []),
+
+        # Accept when input is finished and only $ remains
+            ("q3", "", "$"): ("q3", ["$"]),
+        },
+    },
 }
 
 
