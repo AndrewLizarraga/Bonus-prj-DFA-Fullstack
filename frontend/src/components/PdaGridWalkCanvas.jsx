@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 
 function PdaGridWalkCanvas({ result, activeStepIndex }) {
   const [showMosaic, setShowMosaic] = useState(false);
+
   const randomSeed = useMemo(() => {
     return Math.random();
   }, [result]);
@@ -28,7 +29,6 @@ function PdaGridWalkCanvas({ result, activeStepIndex }) {
       </div>
     );
   }
-  const visibleSteps = result.steps.slice(0, activeStepIndex + 1);
 
   const stateColors = {
     q0: "grid-state-q0",
@@ -37,13 +37,42 @@ function PdaGridWalkCanvas({ result, activeStepIndex }) {
     q3: "grid-state-q3",
   };
 
+  function formatStackAction(action) {
+    if (!action) return "";
+
+    const popMatch = action.match(/pop '([^']+)'/);
+    const stackTop = popMatch ? popMatch[1] : null;
+
+    const pushMatch = action.match(/push \[(.*)\]/);
+    const pushText = pushMatch ? pushMatch[1] : "";
+
+    const pushedSymbols = [...pushText.matchAll(/'([^']+)'/g)].map(
+      (match) => match[1]
+    );
+
+    if (pushedSymbols.length === 0 && stackTop) {
+      return `pop ${stackTop}`;
+    }
+
+    if (stackTop && pushedSymbols[0] === stackTop) {
+      const addedSymbols = pushedSymbols.slice(1);
+
+      if (addedSymbols.length === 0) {
+        return "no stack change";
+      }
+
+      return `push ${addedSymbols.join(" ")}`;
+    }
+
+    return action;
+  }
+
   function getMovementInfo(step, movementConfig = {}) {
     let horizontal = "stay";
     let vertical = "stay";
-    let reasons = [];
-    let symbols = [];
+    const reasons = [];
+    const symbols = [];
 
-    // Horizontal movement: input/state logic
     if (step.stack_action === "initialize") {
       reasons.push("initialize");
       symbols.push("•");
@@ -61,7 +90,6 @@ function PdaGridWalkCanvas({ result, activeStepIndex }) {
       symbols.push("→");
     }
 
-    // Vertical movement: stack logic
     if (step.stack_action?.includes("push []")) {
       vertical = movementConfig.popVertical || "down";
       reasons.push("pop stack");
@@ -78,22 +106,6 @@ function PdaGridWalkCanvas({ result, activeStepIndex }) {
       reason: reasons.join(" + "),
       symbol: symbols.join(" "),
       label: reasons.join(" + "),
-    };
-  }
-
-
-
-
-  function getStartPosition(bounds, padding, seed) {
-    const rowSeed = seed;
-    const colSeed = (seed * 9973) % 1;
-
-    const randomRowOffset = Math.floor(rowSeed * padding);
-    const randomColOffset = Math.floor(colSeed * padding);
-
-    return {
-      row: padding + randomRowOffset - bounds.minRow,
-      col: padding + randomColOffset - bounds.minCol,
     };
   }
 
@@ -134,7 +146,7 @@ function PdaGridWalkCanvas({ result, activeStepIndex }) {
     return frames;
   }
 
-  function getGridBounds(frames, movementConfig) {
+  function getGridBounds(frames) {
     let row = 0;
     let col = 0;
 
@@ -171,21 +183,34 @@ function PdaGridWalkCanvas({ result, activeStepIndex }) {
       cols: maxCol - minCol + 1,
     };
   }
-  function buildGrid(frameLimit = activeStepIndex) {
+
+  function getStartPosition(bounds, padding, seed) {
+    const rowSeed = seed;
+    const colSeed = (seed * 9973) % 1;
+
+    const randomRowOffset = Math.floor(rowSeed * padding);
+    const randomColOffset = Math.floor(colSeed * padding);
+
+    return {
+      row: padding + randomRowOffset - bounds.minRow,
+      col: padding + randomColOffset - bounds.minCol,
+    };
+  }
+
+  function buildGrid(frameLimitStep = activeStepIndex) {
     const movementConfig = result?.grid_movement || {};
     const allFrames = result?.steps
       ? buildAnimationFrames(result.steps, movementConfig)
       : [];
 
-    const bounds = getGridBounds(allFrames, movementConfig);
+    const bounds = getGridBounds(allFrames);
     const padding = 1;
 
     const inputLength = result.input_string?.length || 1;
     const desiredSideLength = Math.ceil(inputLength / 2);
 
-    // Make sure the grid is at least big enough to fit the path.
-    const minimumRowsNeeded = bounds.rows + padding ;
-    const minimumColsNeeded = bounds.cols + padding ;
+    const minimumRowsNeeded = bounds.rows + padding * 2;
+    const minimumColsNeeded = bounds.cols + padding * 2;
 
     const gridRows = Math.max(desiredSideLength, minimumRowsNeeded);
     const gridCols = Math.max(desiredSideLength, minimumColsNeeded);
@@ -206,30 +231,27 @@ function PdaGridWalkCanvas({ result, activeStepIndex }) {
         movementPhase: null,
       }))
     );
+
     const startPosition = getStartPosition(bounds, padding, randomSeed);
 
     let row = startPosition.row;
     let col = startPosition.col;
 
-    const visibleFrames = allFrames.slice(0, frameLimit + 1);
+    const visibleFrames = allFrames.filter(
+      (frame) => frame.step.step <= frameLimitStep
+    );
 
     visibleFrames.forEach((frame) => {
       const { step, movementInfo, phase } = frame;
 
       if (phase === "vertical") {
-        if (movementInfo.vertical === "up") {
-          row -= 1;
-        } else if (movementInfo.vertical === "down") {
-          row += 1;
-        }
+        if (movementInfo.vertical === "up") row -= 1;
+        if (movementInfo.vertical === "down") row += 1;
       }
 
       if (phase === "horizontal") {
-        if (movementInfo.horizontal === "right") {
-          col += 1;
-        } else if (movementInfo.horizontal === "left") {
-          col -= 1;
-        }
+        if (movementInfo.horizontal === "right") col += 1;
+        if (movementInfo.horizontal === "left") col -= 1;
       }
 
       if (!grid[row] || !grid[row][col]) return;
@@ -266,32 +288,56 @@ function PdaGridWalkCanvas({ result, activeStepIndex }) {
     };
   }
 
-    const movementConfig = result?.grid_movement || {};
-const allFrames = result?.steps
-  ? buildAnimationFrames(result.steps, movementConfig)
-  : [];
+  function buildGridMosaic(tileGrid, tilesDown = 3, tilesAcross = 4) {
+    const tileRows = tileGrid.length;
+    const tileCols = tileGrid[0].length;
 
-const finalFrameIndex = allFrames.length - 1;
+    const mosaicRows = tileRows * tilesDown;
+    const mosaicCols = tileCols * tilesAcross;
 
-const currentGridData = buildGrid(activeStepIndex);
-const finalGridData = buildGrid(finalFrameIndex);
+    const mosaicGrid = Array.from({ length: mosaicRows }, (_, row) =>
+      Array.from({ length: mosaicCols }, (_, col) => {
+        const sourceRow = row % tileRows;
+        const sourceCol = col % tileCols;
+        const sourceCell = tileGrid[sourceRow][sourceCol];
 
-const mosaicGridData = buildGridMosaic(finalGridData.grid, 3, 4);
+        return {
+          ...sourceCell,
+          row,
+          col,
+        };
+      })
+    );
 
-const { grid, gridRows, gridCols } = showMosaic
-  ? mosaicGridData
-  : currentGridData;
-  const visibleFrames = allFrames.slice(0, activeStepIndex + 1);
-  const currentFrame = visibleFrames[visibleFrames.length - 1];
-  const currentStep = currentFrame?.step;
+    return {
+      grid: mosaicGrid,
+      gridRows: mosaicRows,
+      gridCols: mosaicCols,
+    };
+  }
+
+  const movementConfig = result?.grid_movement || {};
+  const allFrames = result?.steps
+    ? buildAnimationFrames(result.steps, movementConfig)
+    : [];
+
+  const finalStepIndex = result.steps.length - 1;
+
+  const currentGridData = buildGrid(activeStepIndex);
+  const finalGridData = buildGrid(finalStepIndex);
+  const mosaicGridData = buildGridMosaic(finalGridData.grid, 3, 4);
+
+  const { grid, gridRows, gridCols } = showMosaic
+    ? mosaicGridData
+    : currentGridData;
+
+  const currentStep = result.steps[activeStepIndex];
+
   return (
     <div className="card p-3 pda-grid-card">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div>
           <h5 className="mb-1">PDA Grid Walk</h5>
-          <p className="text-muted mb-0">
-            Grid size: {gridRows} × {gridCols}
-          </p>
         </div>
 
         <div className="d-flex gap-2 align-items-center">
@@ -303,9 +349,7 @@ const { grid, gridRows, gridCols } = showMosaic
             {showMosaic ? "Show Walk" : "Make Mosaic"}
           </button>
 
-          <span className="badge text-bg-success">
-            Accepted
-          </span>
+          <span className="badge text-bg-success">Accepted</span>
         </div>
       </div>
 
@@ -350,52 +394,50 @@ const { grid, gridRows, gridCols } = showMosaic
       {currentStep && (
         <div className="current-step-card mt-3">
           <h6 className="mb-2">Current Step</h6>
-          <div><strong>Step:</strong> {currentStep.step}</div>
-          <div><strong>State:</strong> {currentStep.state}</div>
-          <div><strong>Read:</strong> {currentStep.read_symbol || "ε"}</div>
-          <div><strong>Remaining:</strong> {currentStep.remaining || "ε"}</div>
-          <div><strong>Stack Action:</strong> {currentStep.stack_action}</div>
+          <div>
+            <strong>Step:</strong> {currentStep.step}
+          </div>
+          <div>
+            <strong>State:</strong> {currentStep.state}
+          </div>
+          <div>
+            <strong>Read:</strong> {currentStep.read_symbol || "ε"}
+          </div>
+          <div>
+            <strong>Remaining:</strong> {currentStep.remaining || "ε"}
+          </div>
+          <div>
+            <strong>Stack Action:</strong>{" "}
+            {formatStackAction(currentStep.stack_action)}
+          </div>
         </div>
       )}
 
       <div className="grid-legend mt-3">
-        <div><span className="legend-box grid-state-q0"></span> q0</div>
-        <div><span className="legend-box grid-state-q1"></span> q1</div>
-        <div><span className="legend-box grid-state-q2"></span> q2</div>
-        <div><strong>↑</strong> push</div>
-        <div><strong>↓</strong> pop</div>
-        <div><strong>→</strong> move right</div>
-        <div><strong>ε</strong> epsilon</div>
+        <div>
+          <span className="legend-box grid-state-q0"></span> q0
+        </div>
+        <div>
+          <span className="legend-box grid-state-q1"></span> q1
+        </div>
+        <div>
+          <span className="legend-box grid-state-q2"></span> q2
+        </div>
+        <div>
+          <strong>↑</strong> push
+        </div>
+        <div>
+          <strong>↓</strong> pop
+        </div>
+        <div>
+          <strong>→</strong> move right
+        </div>
+        <div>
+          <strong>ε</strong> epsilon
+        </div>
       </div>
     </div>
   );
-  function buildGridMosaic(tileGrid, tilesDown = 3, tilesAcross = 4) {
-    const tileRows = tileGrid.length;
-    const tileCols = tileGrid[0].length;
-
-    const mosaicRows = tileRows * tilesDown;
-    const mosaicCols = tileCols * tilesAcross;
-
-    const mosaicGrid = Array.from({ length: mosaicRows }, (_, row) =>
-      Array.from({ length: mosaicCols }, (_, col) => {
-        const sourceRow = row % tileRows;
-        const sourceCol = col % tileCols;
-        const sourceCell = tileGrid[sourceRow][sourceCol];
-
-        return {
-          ...sourceCell,
-          row,
-          col,
-        };
-      })
-    );
-
-    return {
-      grid: mosaicGrid,
-      gridRows: mosaicRows,
-      gridCols: mosaicCols,
-    };
-  }
 }
 
 export default PdaGridWalkCanvas;

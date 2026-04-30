@@ -233,6 +233,42 @@ PDAS: Dict[str, Dict[str, object]] = {
             ("q3", "", "$"): ("q3", ["$"]),
         },
     },
+    "pda4": {
+    "description": "Strings of the form 0^n1^m2^(3k), where n > m",
+    "alphabet": {"0", "1", "2"},
+    "stack_alphabet": {"$", "0"},
+    "states": {"q0", "q1", "q2_1", "q2_2", "q2_0", "q_accept"},
+    "start_state": "q0",
+    "start_stack_symbol": "$",
+    "accept_states": {"q_accept"},
+    "transitions": {
+        # Read 0s: push one 0 marker per input 0
+        ("q0", "0", "$"): ("q0", ["$", "0"]),
+        ("q0", "0", "0"): ("q0", ["0", "0"]),
+
+        # Read 1s: pop one 0 marker per input 1
+        ("q0", "1", "0"): ("q1", []),
+        ("q1", "1", "0"): ("q1", []),
+
+        # Start reading 2s.
+        # We only allow this if there is still at least one 0 marker left,
+        # which enforces n > m.
+        ("q0", "2", "0"): ("q2_1", ["0"]),
+        ("q1", "2", "0"): ("q2_1", ["0"]),
+
+        # Count 2s modulo 3 using states
+        ("q2_1", "2", "0"): ("q2_2", ["0"]),
+        ("q2_2", "2", "0"): ("q2_0", ["0"]),
+        ("q2_0", "2", "0"): ("q2_1", ["0"]),
+
+        # Accept with no 2s, as long as n > m
+        ("q0", "", "0"): ("q_accept", ["0"]),
+        ("q1", "", "0"): ("q_accept", ["0"]),
+
+        # Accept after a multiple of 3 twos
+        ("q2_0", "", "0"): ("q_accept", ["0"]),
+        },
+    },
 }
 
 
@@ -342,7 +378,7 @@ def simulate_pda(pda_name: str, input_string: str) -> dict:
             "to_state": None,
             "read_symbol": None,
             "stack_top_before": stack[-1] if stack else None,
-            "stack_action": "initialize stack with start symbol $",
+            "stack_action": "Stack start symbol $",
         }
     ]
 
