@@ -9,7 +9,7 @@ export async function searchSpotifyTracks(query, limit = 5) {
   const data = await response.json();
 
   if (!response.ok || data.error) {
-    throw new Error(data.error || "Failed to search Spotify tracks");
+    throw new Error(data.error || data.detail || "Failed to search Spotify tracks");
   }
 
   return data.tracks;

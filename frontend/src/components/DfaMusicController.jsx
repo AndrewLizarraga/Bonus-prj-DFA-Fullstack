@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+
 import {
   searchSpotifyTracks,
   playSpotifyTrack,
@@ -16,6 +17,7 @@ function DfaMusicController({ accessToken, deviceId, result }) {
   const [status, setStatus] = useState("Run a DFA to build the music plan.");
   const [currentTrack, setCurrentTrack] = useState(null);
   const [musicPlanIndex, setMusicPlanIndex] = useState(0);
+  const [hasTriedLoadingTracks, setHasTriedLoadingTracks] = useState(false);
 
   const steps = result?.steps || [];
   const hasRunDfa = steps.length > 0;
@@ -24,13 +26,21 @@ function DfaMusicController({ accessToken, deviceId, result }) {
 
   useEffect(() => {
     async function loadArtistTracks() {
-      if (!accessToken || !deviceId || !hasRunDfa || isLoaded || isLoadingTracks) {
+      if (
+        !accessToken ||
+        !deviceId ||
+        !hasRunDfa ||
+        isLoaded ||
+        isLoadingTracks ||
+        hasTriedLoadingTracks
+      ) {
         return;
       }
 
       try {
         setIsLoadingTracks(true);
         setStatus(`Loading ${neededSongCount} songs from ${artistName}...`);
+        setHasTriedLoadingTracks(true);
 
         const loadedTracks = await searchSpotifyTracks(
           artistName,
@@ -55,6 +65,7 @@ function DfaMusicController({ accessToken, deviceId, result }) {
     hasRunDfa,
     isLoaded,
     isLoadingTracks,
+    hasTriedLoadingTracks,
     artistName,
     neededSongCount,
   ]);
@@ -65,65 +76,66 @@ function DfaMusicController({ accessToken, deviceId, result }) {
     setIsEnabled(false);
     setCurrentTrack(null);
     setMusicPlanIndex(0);
+    setHasTriedLoadingTracks(false);
     setStatus("Run a DFA to build the music plan.");
   }, [result]);
 
   const musicPlan = useMemo(() => {
-  if (!hasRunDfa || tracks.length === 0) {
-    return [];
-  }
-
-  let songIndex = 0;
-  let previousState = null;
-  let currentSong = tracks[0];
-
-  return steps.map((step, index) => {
-    const currentState = step.state;
-    const isFirstStep = index === 0;
-    const stateChanged =
-      previousState !== null && currentState !== previousState;
-
-    if (isFirstStep) {
-      currentSong = tracks[0];
-    } else if (stateChanged) {
-      songIndex = (songIndex + 1) % tracks.length;
-      currentSong = tracks[songIndex];
+    if (!hasRunDfa || tracks.length === 0) {
+      return [];
     }
 
-    previousState = currentState;
+    let songIndex = 0;
+    let previousState = null;
+    let currentSong = tracks[0];
 
-    return {
-      planIndex: index,
-      dfaStep: step.step,
-      dfaState: currentState,
-      track: currentSong,
-      action: isFirstStep
-        ? "Start song"
-        : stateChanged
-        ? "State changed: play next song"
-        : "Same state: restart current song",
-    };
-  });
-}, [hasRunDfa, steps, tracks]);
+    return steps.map((step, index) => {
+      const currentState = step.state;
+      const isFirstStep = index === 0;
+      const stateChanged =
+        previousState !== null && currentState !== previousState;
+
+      if (isFirstStep) {
+        currentSong = tracks[0];
+      } else if (stateChanged) {
+        songIndex = (songIndex + 1) % tracks.length;
+        currentSong = tracks[songIndex];
+      }
+
+      previousState = currentState;
+
+      return {
+        planIndex: index,
+        dfaStep: step.step,
+        dfaState: currentState,
+        track: currentSong,
+        action: isFirstStep
+          ? "Start song"
+          : stateChanged
+            ? "State changed: play next song"
+            : "Same state: restart current song",
+      };
+    });
+  }, [hasRunDfa, steps, tracks]);
 
   async function playPlanItem(planItem) {
-  if (!planItem?.track) {
-    setStatus("No track found for this DFA step.");
-    return;
+    if (!planItem?.track) {
+      setStatus("No track found for this DFA step.");
+      return;
+    }
+
+    await playSpotifyTrack({
+      accessToken,
+      deviceId,
+      uri: planItem.track.uri,
+    });
+
+    setCurrentTrack(planItem.track);
+
+    setStatus(
+      `Step ${planItem.dfaStep} | ${planItem.dfaState}: ${planItem.action} — ${planItem.track.name}`
+    );
   }
-
-  await playSpotifyTrack({
-    accessToken,
-    deviceId,
-    uri: planItem.track.uri,
-  });
-
-  setCurrentTrack(planItem.track);
-
-  setStatus(
-    `Step ${planItem.dfaStep} | ${planItem.dfaState}: ${planItem.action} — ${planItem.track.name}`
-  );
-}
 
   async function handleStartController() {
     if (!accessToken) {
@@ -162,26 +174,26 @@ function DfaMusicController({ accessToken, deviceId, result }) {
   }
 
   async function handleSkipSong() {
-  if (!isEnabled) {
-    setStatus("Start DFA Music first.");
-    return;
-  }
+    if (!isEnabled) {
+      setStatus("Start DFA Music first.");
+      return;
+    }
 
-  const nextIndex = musicPlanIndex + 1;
+    const nextIndex = musicPlanIndex + 1;
 
-  if (nextIndex >= musicPlan.length) {
-    setStatus("End of DFA music plan.");
-    return;
-  }
+    if (nextIndex >= musicPlan.length) {
+      setStatus("End of DFA music plan.");
+      return;
+    }
 
-  try {
-    setMusicPlanIndex(nextIndex);
-    await playPlanItem(musicPlan[nextIndex]);
-  } catch (err) {
-    console.error(err);
-    setStatus(err.message);
+    try {
+      setMusicPlanIndex(nextIndex);
+      await playPlanItem(musicPlan[nextIndex]);
+    } catch (err) {
+      console.error(err);
+      setStatus(err.message);
+    }
   }
-}
 
   async function handleStopController() {
     setIsEnabled(false);
