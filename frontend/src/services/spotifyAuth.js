@@ -72,28 +72,32 @@ export async function exchangeCodeForToken(code) {
     body,
   });
 
-  const data = await response.json();
+    const data = await response.json();
 
-  if (!response.ok) {
-    console.error("Spotify token error:", data);
-    throw new Error(data.error_description || "Failed to get Spotify token");
-  }
+    if (!response.ok) {
+        console.error("Spotify token error:", data);
+        throw new Error(data.error_description || "Failed to get Spotify token");
+    }
 
-  localStorage.setItem("spotify_access_token", data.access_token);
+    localStorage.setItem("spotify_access_token", data.access_token);
 
-  if (data.refresh_token) {
-    localStorage.setItem("spotify_refresh_token", data.refresh_token);
-  }
+    if (data.refresh_token) {
+        localStorage.setItem("spotify_refresh_token", data.refresh_token);
+    }
 
-  return data;
+    return data;
 }
 
 export function getSpotifyAccessToken() {
-  return localStorage.getItem("spotify_access_token");
+    return localStorage.getItem("spotify_access_token");
+}
+
+export function clearSpotifySession() {
+    localStorage.removeItem("spotify_access_token");
+    localStorage.removeItem("spotify_refresh_token");
+    localStorage.removeItem("spotify_code_verifier");
 }
 
 export function logoutSpotify() {
-  localStorage.removeItem("spotify_access_token");
-  localStorage.removeItem("spotify_refresh_token");
-  localStorage.removeItem("spotify_code_verifier");
+    clearSpotifySession();
 }

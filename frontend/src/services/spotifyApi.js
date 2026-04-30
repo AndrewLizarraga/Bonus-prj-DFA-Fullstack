@@ -36,3 +36,24 @@ export async function playSpotifyTrack({ accessToken, deviceId, uri }) {
 
   return data;
 }
+
+export async function pauseSpotifyPlayback({ accessToken, deviceId }) {
+  const response = await fetch(`${API_BASE_URL}/spotify/pause`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      access_token: accessToken,
+      device_id: deviceId,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok || data.ok === false) {
+    throw new Error(data.error || "Failed to pause Spotify playback");
+  }
+
+  return data;
+}

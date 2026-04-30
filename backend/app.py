@@ -1,5 +1,5 @@
 from typing import Dict, Set, Tuple, Literal
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -546,17 +546,15 @@ def simulate_pda(pda_name: str, input_string: str) -> dict:
 
 #Spodify helper function
 def get_spotify_access_token():
-    """Obtain an application access token from Spotify (client_credentials).
-
-    Note: this uses the client credentials flow and is suitable for
-    searching public metadata. It does not grant access to user
-    playback APIs which require OAuth authorization with user tokens.
-    """
+    if not SPOTIFY_CLIENT_ID or not SPOTIFY_CLIENT_SECRET:
+        raise HTTPException(
+            status_code=500,
+            detail="Missing SPOTIFY_CLIENT_ID or SPOTIFY_CLIENT_SECRET on backend.",
+        )
 
     auth_string = f"{SPOTIFY_CLIENT_ID}:{SPOTIFY_CLIENT_SECRET}"
     auth_bytes = auth_string.encode("utf-8")
     auth_base64 = base64.b64encode(auth_bytes).decode("utf-8")
-
 
     response = requests.post(
         "https://accounts.spotify.com/api/token",
@@ -569,7 +567,12 @@ def get_spotify_access_token():
         },
     )
 
-    response.raise_for_status()
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Spotify token request failed: {response.text}",
+        )
+
     return response.json()["access_token"]
 
 def spotify_user_headers(access_token: str) -> dict:
@@ -741,13 +744,6 @@ def search_artist(q: str = "Daft Punk"):
 
 @app.get("/spotify/search-tracks")
 def spotify_search_tracks(q: str = "Daft Punk", limit: int = 5):
-    """Search for tracks matching ``q`` and return a compact list.
-
-    This uses application credentials and returns track metadata useful
-    for populating search results in the frontend (including the
-    Spotify URI which can be used with user-scoped playback tokens).
-    """
-
     token = get_spotify_access_token()
 
     response = requests.get(
@@ -762,7 +758,12 @@ def spotify_search_tracks(q: str = "Daft Punk", limit: int = 5):
         },
     )
 
-    response.raise_for_status()
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Spotify search failed: {response.text}",
+        )
+
     data = response.json()
 
     tracks = []

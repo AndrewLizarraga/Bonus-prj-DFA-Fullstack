@@ -31,6 +31,9 @@ function SpotifyPlayer({ accessToken, onDeviceReady }) {
             setPlayerReady(true);
             setStatus("Spotify player ready.");
             onDeviceReady(device_id);
+            if (onDeviceReady) {
+                onDeviceReady(device_id);
+            }
         });
 
       player.addListener("not_ready", ({ device_id }) => {
@@ -45,9 +48,20 @@ function SpotifyPlayer({ accessToken, onDeviceReady }) {
       });
 
       player.addListener("authentication_error", ({ message }) => {
-        console.error("Authentication error:", message);
-        setStatus(`Authentication error: ${message}`);
-      });
+  console.error("Authentication error:", message);
+
+  localStorage.removeItem("spotify_access_token");
+  localStorage.removeItem("spotify_refresh_token");
+  localStorage.removeItem("spotify_code_verifier");
+
+  setPlayerReady(false);
+  setDeviceId("");
+  setStatus("Spotify session expired. Please log in again.");
+
+  if (onDeviceReady) {
+    onDeviceReady("");
+  }
+});
 
       player.addListener("account_error", ({ message }) => {
         console.error("Account error:", message);

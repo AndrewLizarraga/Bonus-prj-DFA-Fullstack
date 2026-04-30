@@ -15,6 +15,9 @@ import SpotifyCallback from "./components/SpotifyCallback";
 import { getSpotifyAccessToken } from "./services/spotifyAuth";
 import SpotifyPlayer from "./components/SpotifyPlayer";
 import SpotifyTrackSearch from "./components/SpotifyTrackSearch";
+
+import DfaMusicController from "./components/DfaMusicController";
+
 function App() {
   const [userSelectedType, setSelectedType] = useState("");
   const [selectedAutomaton, setSelectedAutomaton] = useState("");
@@ -52,8 +55,6 @@ function App() {
         setIsLoading(true);
         const options = await getAutomataOptions(userSelectedType);
 
-        console.log("Setting automata options:", options);
-
         setAutomataOptions(options);
         setSelectedAutomaton("");
         setResult(null);
@@ -84,7 +85,6 @@ function App() {
   }, [isLoading]);
 
   async function handleRunAutomaton() {
-    console.log("Run button clicked");
 
     if (!hasSelectedType) {
       console.warn("Not running API because selected type is:", userSelectedType);
@@ -215,14 +215,16 @@ function App() {
                           <div className="text-success small mt-3">
                             Spotify connected
                           </div>
+
                           <SpotifyPlayer
                             accessToken={spotifyToken}
                             onDeviceReady={setSpotifyDeviceId}
                           />
 
-                          <SpotifyTrackSearch
+                          <DfaMusicController
                             accessToken={spotifyToken}
                             deviceId={spotifyDeviceId}
+                            result={result}
                           />
                         </>
                       )}

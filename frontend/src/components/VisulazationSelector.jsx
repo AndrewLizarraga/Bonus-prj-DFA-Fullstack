@@ -13,8 +13,6 @@ function VisulazationSelector({
   const selectedLabel =
     selectedType === "dfa" ? "DFA" : selectedType === "pda" ? "PDA" : "";
 
-  console.log("selectedType:", selectedType);
-  console.log("automataOptions:", automataOptions);
 
   return (
     <div className="container py-4 selector-container">
