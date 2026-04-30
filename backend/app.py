@@ -3,6 +3,27 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+# Spotify helper integration
+import os
+import base64
+import requests
+from dotenv import load_dotenv
+
+"""
+backend.app
+FastAPI backend exposing:
+- DFA and PDA simulators used by the frontend visualization
+- Spotify helper endpoints used for searching and remote playback
+
+This file only contains routes and pure-Python simulators; nothing
+here modifies behavior of the routes — only documentation and
+clarifying comments are being added.
+"""
+
+load_dotenv("backend/.env")
+SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
+SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
+SPOTIFY_REDIRECT_URI = os.getenv("SPOTIFY_REDIRECT_URI")
 app = FastAPI()
 
 # CORS setup
@@ -14,7 +35,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Request model
+# Request / validation models
+class SpotifyPlaybackRequest(BaseModel):
+    access_token: str
+    device_id: str | None = None
+    uri: str | None = None
+
 class AutomatonRequest(BaseModel):
     automaton_type: Literal["dfa", "pda"]
     automaton_id: str
@@ -274,6 +300,14 @@ PDAS: Dict[str, Dict[str, object]] = {
 
 
 def simulate_dfa(dfa_name: str, input_string: str) -> dict:
+    """Simulate the DFA named ``dfa_name`` on ``input_string``.
+
+    Returns a dictionary describing the simulation steps and final
+    acceptance. The structure mirrors what the frontend expects and
+    includes detailed rejection reasons when the input is invalid or
+    a transition is missing.
+    """
+
     if dfa_name not in DFAS:
         return {"error": "DFA not found"}
 
@@ -351,6 +385,13 @@ def simulate_dfa(dfa_name: str, input_string: str) -> dict:
     }
 
 def simulate_pda(pda_name: str, input_string: str) -> dict:
+    """Simulate the PDA named ``pda_name`` on ``input_string``.
+
+    The PDA uses a Python list as a stack (list end = stack top).
+    The returned dict includes the step-by-step stack snapshot and
+    a clear acceptance/rejection summary for the frontend.
+    """
+
     if pda_name not in PDAS:
         return {"error": "PDA not found"}
 
@@ -496,8 +537,55 @@ def simulate_pda(pda_name: str, input_string: str) -> dict:
         "rejection_reason": None if is_accepted else "Input finished but PDA was not in an accept state",
     }
 
+#Spodify helper function
+def get_spotify_access_token():
+    """Obtain an application access token from Spotify (client_credentials).
+
+    Note: this uses the client credentials flow and is suitable for
+    searching public metadata. It does not grant access to user
+    playback APIs which require OAuth authorization with user tokens.
+    """
+
+    auth_string = f"{SPOTIFY_CLIENT_ID}:{SPOTIFY_CLIENT_SECRET}"
+    auth_bytes = auth_string.encode("utf-8")
+    auth_base64 = base64.b64encode(auth_bytes).decode("utf-8")
+
+
+    response = requests.post(
+        "https://accounts.spotify.com/api/token",
+        headers={
+            "Authorization": f"Basic {auth_base64}",
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+        data={
+            "grant_type": "client_credentials",
+        },
+    )
+
+    response.raise_for_status()
+    return response.json()["access_token"]
+
+def spotify_user_headers(access_token: str) -> dict:
+    """Return headers required for Spotify Web API calls that act on behalf of a user.
+
+    ``access_token`` must be a user-scoped OAuth token with the
+    appropriate playback scopes (e.g. ``user-modify-playback-state``).
+    """
+
+    return {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+
 @app.post("/run-automaton")
 def run_automaton(payload: AutomatonRequest):
+    """Route to run a specified automaton.
+
+    The payload indicates whether to run a DFA or PDA. This route
+    simply dispatches to the corresponding simulator and returns its
+    result unchanged.
+    """
+
     if payload.automaton_type == "dfa":
         return simulate_dfa(payload.automaton_id, payload.input_string)
     elif payload.automaton_type == "pda":
@@ -507,6 +595,13 @@ def run_automaton(payload: AutomatonRequest):
 
 @app.get("/dfas")
 def get_dfas():
+    """Return a summarized list of DFAs suitable for the frontend UI.
+
+    The response contains per-DFA metadata and a flattened transition
+    list. States are derived from start/accept/transitions to keep the
+    data compact.
+    """
+
     dfa_list = []
 
     for dfa_name, dfa_data in DFAS.items():
@@ -539,6 +634,13 @@ def get_dfas():
 
 @app.get("/pdas")
 def get_pdas():
+    """Return a summarized list of PDAs suitable for the frontend UI.
+
+    Each PDA entry includes a flattened list of transitions along with
+    stack-related metadata required to render and simulate the machine
+    on the client side.
+    """
+
     pda_list = []
 
     for pda_name, pda_data in PDAS.items():
@@ -567,3 +669,220 @@ def get_pdas():
         })
 
     return {"pdas": pda_list}
+
+
+    #Spotify Test route
+
+@app.get("/spotify/test")
+def spotify_test():
+    """Quick Spotify API connectivity test using client credentials.
+
+    This endpoint is intended for development to confirm the server
+    can reach Spotify's search endpoint with the application token.
+    """
+
+    token = get_spotify_access_token()
+
+    response = requests.get(
+        "https://api.spotify.com/v1/search",
+        headers={
+            "Authorization": f"Bearer {token}",
+        },
+        params={
+            "q": "Daft Punk",
+            "type": "artist",
+            "limit": 1,
+        },
+    )
+
+    response.raise_for_status()
+    return response.json()
+
+@app.get("/spotify/search-artist")
+def search_artist(q: str = "Daft Punk"):
+    """Search for an artist by name and return a compact summary.
+
+    Uses application credentials and returns a minimal object with the
+    artist id, display name, image URL (if available) and Spotify URL.
+    """
+
+    token = get_spotify_access_token()
+
+    response = requests.get(
+        "https://api.spotify.com/v1/search",
+        headers={
+            "Authorization": f"Bearer {token}",
+        },
+        params={
+            "q": q,
+            "type": "artist",
+            "limit": 1,
+        },
+    )
+
+    response.raise_for_status()
+    data = response.json()
+
+    artist = data["artists"]["items"][0]
+
+    return {
+        "id": artist["id"],
+        "name": artist["name"],
+        "image": artist["images"][0]["url"] if artist["images"] else None,
+        "spotify_url": artist["external_urls"]["spotify"],
+    }
+
+@app.get("/spotify/search-tracks")
+def spotify_search_tracks(q: str = "Daft Punk", limit: int = 5):
+    """Search for tracks matching ``q`` and return a compact list.
+
+    This uses application credentials and returns track metadata useful
+    for populating search results in the frontend (including the
+    Spotify URI which can be used with user-scoped playback tokens).
+    """
+
+    token = get_spotify_access_token()
+
+    response = requests.get(
+        "https://api.spotify.com/v1/search",
+        headers={
+            "Authorization": f"Bearer {token}",
+        },
+        params={
+            "q": q,
+            "type": "track",
+            "limit": limit,
+        },
+    )
+
+    response.raise_for_status()
+    data = response.json()
+
+    tracks = []
+
+    for item in data["tracks"]["items"]:
+        album_images = item["album"]["images"]
+
+        tracks.append({
+            "id": item["id"],
+            "name": item["name"],
+            "artist": ", ".join(artist["name"] for artist in item["artists"]),
+            "album": item["album"]["name"],
+            "image": album_images[0]["url"] if album_images else None,
+            "spotify_url": item["external_urls"]["spotify"],
+            "uri": item["uri"],
+        })
+
+    return {
+        "query": q,
+        "tracks": tracks,
+    }
+
+@app.put("/spotify/play")
+def spotify_play(payload: SpotifyPlaybackRequest):
+    """Start playback on a user's device.
+
+    ``payload.access_token`` must be a user-scoped Spotify OAuth token
+    with the appropriate playback scopes (e.g. ``user-modify-playback-state``).
+    ``device_id`` is optional; ``uri`` may be a track, album, or playlist
+    URI and will be placed in the correct request body field for the
+    Web API.
+    """
+
+    url = "https://api.spotify.com/v1/me/player/play"
+
+    params = {}
+    if payload.device_id:
+        params["device_id"] = payload.device_id
+
+    body = {}
+    if payload.uri:
+        if payload.uri.startswith("spotify:playlist:") or payload.uri.startswith("spotify:album:"):
+            body["context_uri"] = payload.uri
+        elif payload.uri.startswith("spotify:track:"):
+            body["uris"] = [payload.uri]
+
+    response = requests.put(
+        url,
+        headers=spotify_user_headers(payload.access_token),
+        params=params,
+        json=body,
+    )
+
+    if response.status_code not in (200, 202, 204):
+        return {
+            "ok": False,
+            "status_code": response.status_code,
+            "error": response.text,
+        }
+
+    return {
+        "ok": True,
+        "message": "Playback started",
+    }
+
+
+@app.put("/spotify/pause")
+def spotify_pause(payload: SpotifyPlaybackRequest):
+    """Pause playback on the user's active device.
+
+    Returns a compact success or error object based on Spotify's HTTP
+    response code.
+    """
+
+    url = "https://api.spotify.com/v1/me/player/pause"
+
+    params = {}
+    if payload.device_id:
+        params["device_id"] = payload.device_id
+
+    response = requests.put(
+        url,
+        headers=spotify_user_headers(payload.access_token),
+        params=params,
+    )
+
+    if response.status_code not in (200, 202, 204):
+        return {
+            "ok": False,
+            "status_code": response.status_code,
+            "error": response.text,
+        }
+
+    return {
+        "ok": True,
+        "message": "Playback paused",
+    }
+
+
+@app.post("/spotify/next")
+def spotify_next(payload: SpotifyPlaybackRequest):
+    """Skip to the next track on the user's active device.
+
+    This calls the Spotify Web API endpoint and returns a small result
+    object indicating success or providing the raw error details.
+    """
+
+    url = "https://api.spotify.com/v1/me/player/next"
+
+    params = {}
+    if payload.device_id:
+        params["device_id"] = payload.device_id
+
+    response = requests.post(
+        url,
+        headers=spotify_user_headers(payload.access_token),
+        params=params,
+    )
+
+    if response.status_code not in (200, 202, 204):
+        return {
+            "ok": False,
+            "status_code": response.status_code,
+            "error": response.text,
+        }
+
+    return {
+        "ok": True,
+        "message": "Skipped to next track",
+    }

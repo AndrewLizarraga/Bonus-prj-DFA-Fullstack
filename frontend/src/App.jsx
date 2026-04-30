@@ -10,6 +10,10 @@ import { normalizeAutomaton } from "./utils/normalizeAutomaton";
 import "./components/AlertCard";
 import AlertCard from "./components/AlertCard";
 
+import SpotifyLoginButton from "./components/SpotifyLoginButton";
+import SpotifyCallback from "./components/SpotifyCallback";
+import { getSpotifyAccessToken } from "./services/spotifyAuth";
+
 function App() {
   const [userSelectedType, setSelectedType] = useState("");
   const [selectedAutomaton, setSelectedAutomaton] = useState("");
@@ -21,6 +25,8 @@ function App() {
   const [renderMode, setRenderMode] = useState("diagram");
   const [isLoading, setIsLoading] = useState(false);
   const [showLoadingCard, setShowLoadingCard] = useState(false);
+  const [spotifyToken, setSpotifyToken] = useState(getSpotifyAccessToken());
+  const [showMusicMode, setShowMusicMode] = useState(false);
 
   const { activeStepIndex } = useStepPlayback(result, stepSpeed);
 
@@ -71,7 +77,7 @@ function App() {
     } else {
       setShowLoadingCard(false);
     }
-    
+
     return () => clearTimeout(timerId);
   }, [isLoading]);
 
@@ -91,7 +97,7 @@ function App() {
     try {
       setError("");
       setResult(null);
-      
+
 
       const data = await runAutomaton(
         userSelectedType,
@@ -104,8 +110,12 @@ function App() {
     } catch (err) {
       console.error("API error:", err.message);
       setError(err.message);
-    } finally{
+    } finally {
     }
+  }
+
+  if (window.location.pathname === "/callback") {
+    return <SpotifyCallback />;
   }
 
   return (
@@ -127,9 +137,9 @@ function App() {
         {showLoadingCard && (
           <div className="px-5 mt-3">
             <AlertCard
-              title = "Intial Fetch:"
-              description = "The first fetch can take a bit longer(~20 seconds) due to free render server waking up. Thanks for your patience! "
-              type = "api-response"
+              title="Intial Fetch:"
+              description="The first fetch can take a bit longer(~20 seconds) due to free render server waking up. Thanks for your patience! "
+              type="api-response"
             />
           </div>
         )}
@@ -157,6 +167,17 @@ function App() {
             <div className="container-fluid mt-4 px-0 px-md-5">
               <div className="row g-3">
                 <div className={userSelectedType === "pda" ? "col-md-10" : "col-12"}>
+                  
+                  {userSelectedType === "dfa" && (
+                    <div className="d-flex justify-content-end mb-2">
+                      <button
+                        className="btn btn-outline-success btn-sm"
+                        onClick={() => setShowMusicMode((currentMode) => !currentMode)}
+                      >
+                        {showMusicMode ? "Switch to DFA Diagram" : "Switch to Music View"}
+                      </button>
+                    </div>
+                  )}
                   {userSelectedType === "pda" && (
                     <div className="d-flex justify-content-end mb-2">
                       <button
@@ -174,7 +195,26 @@ function App() {
                     </div>
                   )}
 
-                  {userSelectedType === "pda" && renderMode === "grid" ? (
+                  {userSelectedType === "dfa" && showMusicMode ? (
+                    <div className="card p-4 shadow-sm text-center">
+                      <h5>Music View</h5>
+
+                      <p className="text-muted mb-3">
+                        Connect Spotify to control music from this DFA.
+                      </p>
+
+                      <SpotifyLoginButton
+                        isLoggedIn={!!spotifyToken}
+                        onLogout={() => setSpotifyToken(null)}
+                      />
+
+                      {spotifyToken && (
+                        <div className="text-success small mt-3">
+                          Spotify connected
+                        </div>
+                      )}
+                    </div>
+                  ) : userSelectedType === "pda" && renderMode === "grid" ? (
                     <PdaGridWalkCanvas
                       result={result}
                       activeStepIndex={activeStepIndex}
