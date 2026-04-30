@@ -13,7 +13,8 @@ import AlertCard from "./components/AlertCard";
 import SpotifyLoginButton from "./components/SpotifyLoginButton";
 import SpotifyCallback from "./components/SpotifyCallback";
 import { getSpotifyAccessToken } from "./services/spotifyAuth";
-
+import SpotifyPlayer from "./components/SpotifyPlayer";
+import SpotifyTrackSearch from "./components/SpotifyTrackSearch";
 function App() {
   const [userSelectedType, setSelectedType] = useState("");
   const [selectedAutomaton, setSelectedAutomaton] = useState("");
@@ -27,6 +28,7 @@ function App() {
   const [showLoadingCard, setShowLoadingCard] = useState(false);
   const [spotifyToken, setSpotifyToken] = useState(getSpotifyAccessToken());
   const [showMusicMode, setShowMusicMode] = useState(false);
+  const [spotifyDeviceId, setSpotifyDeviceId] = useState("");
 
   const { activeStepIndex } = useStepPlayback(result, stepSpeed);
 
@@ -209,9 +211,20 @@ function App() {
                       />
 
                       {spotifyToken && (
-                        <div className="text-success small mt-3">
-                          Spotify connected
-                        </div>
+                        <>
+                          <div className="text-success small mt-3">
+                            Spotify connected
+                          </div>
+                          <SpotifyPlayer
+                            accessToken={spotifyToken}
+                            onDeviceReady={setSpotifyDeviceId}
+                          />
+
+                          <SpotifyTrackSearch
+                            accessToken={spotifyToken}
+                            deviceId={spotifyDeviceId}
+                          />
+                        </>
                       )}
                     </div>
                   ) : userSelectedType === "pda" && renderMode === "grid" ? (
