@@ -4,7 +4,7 @@ function StackPanel({ result, activeStepIndex }) {
   const stack = currentStep?.stack || [];
 
   return (
-    <div className="card p-3 mt-3 h-100 stack-panel">
+    <div className="card p-3 mt-5 stack-panel">
       <h5 className="text-center">Stack</h5>
 
       {!currentStep ? (
@@ -26,7 +26,7 @@ function StackPanel({ result, activeStepIndex }) {
           </div>
 
           {currentStep.stack_action && (
-            <p className="text-muted text-center mt-3 mb-0">
+            <p className="stack-text-action text-center mt-3 mb-0">
               {currentStep.stack_action}
             </p>
           )}

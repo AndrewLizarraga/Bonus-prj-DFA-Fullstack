@@ -3,9 +3,9 @@
 function TracePanel({ result, activeStepIndex }) {
   if (!result) {
     return (
-      <div className="card p-3">
-        <h5>Trace Panel</h5>
-        <p className="text-muted mb-0">Run an automaton to see the trace.</p>
+      <div className="card p-3 trace-panel-card">
+        <h5 className="trace-panel-title">Trace Panel</h5>
+        <p className="trace-empty-text">Run an automaton to see the trace.</p>
       </div>
     );
   }
@@ -13,43 +13,68 @@ function TracePanel({ result, activeStepIndex }) {
   const visibleSteps = result.steps.slice(0, activeStepIndex + 1);
 
   return (
-    <div className="card p-3">
-      <h5>Trace Panel</h5>
+    <div className="card p-3 trace-panel-card">
+      <div className="trace-panel-header">
+        <h5 className="trace-panel-title">Trace Panel</h5>
 
-      <div className="mb-2">
-        <strong>Status:</strong>{" "}
-        <span className={result.is_accepted ? "text-success" : "text-danger"}>
+        <span
+          className={
+            result.is_accepted
+              ? "trace-status trace-status-accepted"
+              : "trace-status trace-status-rejected"
+          }
+        >
           {result.is_accepted ? "Accepted" : "Rejected"}
         </span>
       </div>
 
       <div className="trace-list">
         {visibleSteps.map((step) => (
-          <div key={step.step} className="border rounded p-2 mb-2">
-            <strong>Step {step.step}</strong>
+          <div key={step.step} className="trace-step-card">
+            <div className="trace-step-header">
+              <span className="trace-step-badge">Step {step.step}</span>
+              <span className="trace-state-pill">{step.state}</span>
+            </div>
 
-            <div>State: {step.state}</div>
-            <div>Remaining Input: {step.remaining || "ε"}</div>
+            <div className="trace-row">
+              <span className="trace-label">Remaining</span>
+              <span className="trace-value">{step.remaining || "ε"}</span>
+            </div>
 
             {step.from_state && step.to_state && (
-              <div>
-                Move: {step.from_state} → {step.to_state}
+              <div className="trace-row">
+                <span className="trace-label">Move</span>
+                <span className="trace-value">
+                  {step.from_state} → {step.to_state}
+                </span>
               </div>
             )}
 
             {step.read_symbol !== undefined && step.read_symbol !== null && (
-              <div>Read: {step.read_symbol || "ε"}</div>
+              <div className="trace-row">
+                <span className="trace-label">Read</span>
+                <span className="trace-value">{step.read_symbol || "ε"}</span>
+              </div>
             )}
 
-            {step.stack && <div>Stack: [{step.stack.join(", ")}]</div>}
+            {step.stack && (
+              <div className="trace-row">
+                <span className="trace-label">Stack</span>
+                <span className="trace-value">[{step.stack.join(", ")}]</span>
+              </div>
+            )}
 
-            {step.stack_action && <div>Stack Action: {step.stack_action}</div>}
+            {step.stack_action && (
+              <div className="trace-stack-action">
+                {step.stack_action}
+              </div>
+            )}
           </div>
         ))}
       </div>
 
       {activeStepIndex === result.steps.length - 1 && result.rejection_reason && (
-        <div className="alert alert-danger py-2 mt-3">
+        <div className="trace-rejection-box">
           {result.rejection_reason}
         </div>
       )}

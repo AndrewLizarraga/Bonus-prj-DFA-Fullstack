@@ -104,14 +104,14 @@ function App() {
           <>
             <div className="d-flex gap-2 align-items-center mt-3 px-5">
               <input
-                className="form-control form-control-sm"
+                className="form-control form-control-sm input-string-field"
                 value={inputString}
                 onChange={(e) => setInputString(e.target.value)}
-                placeholder="Enter input string, example: 0011"
+                placeholder="Enter input string"
               />
 
               <button
-                className="btn btn-primary btn-sm"
+                className="btn btn-primary btn-sm run-automaton-btn"
                 onClick={handleRunAutomaton}
               >
                 Run Automaton
@@ -120,9 +120,9 @@ function App() {
               {error && <div className="alert alert-danger mt-3">{error}</div>}
             </div>
 
-            <div className="container-fluid mt-4 px-5">
+            <div className="container-fluid mt-4 px-0 px-md-5">
               <div className="row g-3">
-                <div className={userSelectedType === "pda" ? "col-md-9" : "col-12"}>
+                <div className={userSelectedType === "pda" ? "col-md-10" : "col-12"}>
                   {userSelectedType === "pda" && (
                     <div className="d-flex justify-content-end mb-2">
                       <button
@@ -162,7 +162,7 @@ function App() {
                 </div>
 
                 {userSelectedType === "pda" && (
-                  <div className="col-md-3">
+                  <div className="col-md-2">
                     <StackPanel
                       result={result}
                       activeStepIndex={activeStepIndex}
