@@ -7,6 +7,8 @@ import PdaGridWalkCanvas from "./components/PdaGridWalkCanvas";
 import { runAutomaton, getAutomataOptions } from "./services/automatonApi";
 import useStepPlayback from "./hooks/useStepPlayback";
 import { normalizeAutomaton } from "./utils/normalizeAutomaton";
+import "./components/AlertCard";
+import AlertCard from "./components/AlertCard";
 
 function App() {
   const [userSelectedType, setSelectedType] = useState("");
@@ -17,6 +19,8 @@ function App() {
   const [error, setError] = useState("");
   const [stepSpeed, setStepSpeed] = useState(1);
   const [renderMode, setRenderMode] = useState("diagram");
+  const [isLoading, setIsLoading] = useState(false);
+  const [showLoadingCard, setShowLoadingCard] = useState(false);
 
   const { activeStepIndex } = useStepPlayback(result, stepSpeed);
 
@@ -27,6 +31,7 @@ function App() {
     (a) => a.id === selectedAutomaton
   );
 
+
   const drawableAutomaton =
     selectedAutomatonObject && userSelectedType
       ? normalizeAutomaton(userSelectedType, selectedAutomatonObject)
@@ -34,7 +39,9 @@ function App() {
 
   useEffect(() => {
     async function fetchAutomataOptions() {
+      
       try {
+        setIsLoading(true);
         const options = await getAutomataOptions(userSelectedType);
 
         console.log("Setting automata options:", options);
@@ -46,11 +53,27 @@ function App() {
       } catch (err) {
         console.error("Failed to fetch automata options:", err.message);
         setAutomataOptions([]);
+      } finally {
+        setIsLoading(false);
       }
     }
 
     fetchAutomataOptions();
   }, [userSelectedType]);
+
+  useEffect(() => {
+    let timerId;
+
+    if(isLoading){
+      timerId = setTimeout(() => {
+        setShowLoadingCard(true);
+      }, 1500);
+    } else {
+      setShowLoadingCard(false);
+    }
+    
+    return () => clearTimeout(timerId);
+  }, [isLoading]);
 
   async function handleRunAutomaton() {
     console.log("Run button clicked");
@@ -68,6 +91,7 @@ function App() {
     try {
       setError("");
       setResult(null);
+      
 
       const data = await runAutomaton(
         userSelectedType,
@@ -80,6 +104,7 @@ function App() {
     } catch (err) {
       console.error("API error:", err.message);
       setError(err.message);
+    } finally{
     }
   }
 
@@ -98,7 +123,16 @@ function App() {
 
         {userSelectedType === "dfa" && <div>DFA Visualizer</div>}
         {userSelectedType === "pda" && <div>PDA Visualizer</div>}
-        {userSelectedType === "other" && <div>Other Thing</div>}
+
+        {showLoadingCard && (
+          <div className="px-5 mt-3">
+            <AlertCard
+              title = "Intial Fetch:"
+              description = "The first fetch can take a bit longer(~20 seconds) due to free render server waking up. Thanks for your patience! "
+              type = "api-response"
+            />
+          </div>
+        )}
 
         {hasSelectedType && (
           <>

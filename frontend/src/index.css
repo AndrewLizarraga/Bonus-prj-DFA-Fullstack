@@ -316,6 +316,37 @@ code {
   accent-color: var(--accent);
   margin-top: 4px;
 }
+/* =========================
+   Alert Card
+   ========================= */
+   .alert-card {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem;
+  border-radius: 14px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  box-shadow: var(--shadow);
+  text-align: left;
+}
+
+.alert-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.alert-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.alert-api-response {
+  border-left: 5px solid var(--accent);
+}
 
 /* =========================
    button and text box Elements

@@ -35,8 +35,7 @@ function VisulazationSelector({
           >
             <option value="">Select an option</option>
             <option value="dfa">DFA Visualizer</option>
-            <option value="pda">PDA Visualizer</option>
-            <option value="other">Other Thing</option>
+            <option value="pda">PDA Visualizer</option>            
           </select>
 
           {hasSelectedType && (
@@ -71,9 +70,9 @@ function VisulazationSelector({
               <input
                 type="range"
                 className="form-range selector-range"
-                min="0.1"
-                max="2"
-                step="0.1"
+                min="0.05"
+                max="1"
+                step="0.05"
                 id="speedRange"
                 value={stepSpeed}
                 onChange={(event) =>

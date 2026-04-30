@@ -342,7 +342,7 @@ def simulate_pda(pda_name: str, input_string: str) -> dict:
             "to_state": None,
             "read_symbol": None,
             "stack_top_before": stack[-1] if stack else None,
-            "stack_action": "initialize",
+            "stack_action": "initialize stack with start symbol $",
         }
     ]
 
