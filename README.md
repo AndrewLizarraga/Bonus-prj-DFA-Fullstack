@@ -2,13 +2,17 @@
 
 A small web app for exploring and testing deterministic finite automata (DFAs). Users pick a predefined DFA, enter a binary input string, view whether the string is accepted or rejected, and see the automaton rendered on a canvas with a readable execution trace.
 
-## Delopied URL on Render
+## Backend
+Back-end deployed on Render
 
-[Live Demo](https://bonus-prj-dfa-fullstack-1.onrender.com/)
+## Live Page
+Use the GitHub pages link in the Deployment section
+
+
 
 ## Purpose
 
-This project is meant to make DFA behavior easier to understand visually.
+This project is meant to make Automaton behavior easier to understand visually.
 
 It combines:
 - a **FastAPI backend** that stores DFA definitions and simulates them step by step
@@ -182,9 +186,5 @@ If someone wants a GitHub Pages-only version, the DFA data and simulation logic 
 - **Backend-owned DFA definitions**: the source of truth stays in Python, so simulation and visualization use the same data.
 - **Canvas-based renderer**: states, straight edges, curved reverse edges, self-loops, and start arrows are drawn dynamically.
 - **Readable trace output**: the frontend formats each run into a concise state/remaining-input sequence.
-
-## What is currently missing from the README inputs
-
-I could write this README from the sources you shared, but these details were **not present in the files I reviewed** and would make it more complete:
 
 
