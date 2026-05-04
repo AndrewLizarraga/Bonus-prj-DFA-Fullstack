@@ -155,18 +155,18 @@
       rgba(70, 55, 35, 0.18) 0 10px 15px -3px,
       rgba(70, 55, 35, 0.1) 0 4px 6px -2px;
   }
-}
+
 
   #social .button-icon {
     filter: invert(1) brightness(2);
   }
-}
 
-/* =========================
+ /* =========================
    Global Layout
    ========================= */
-body {
+ body {
   margin: 0;
+  }
 }
 
 #root {
