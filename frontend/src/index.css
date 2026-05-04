@@ -142,18 +142,20 @@
    ========================= */
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
+    --text: #5f584d;
+    --text-h: #1f1a14;
     --bg: #d8d2c4;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
+    --border: #b8ad9b;
+    --code-bg: #cfc6b8;
+    --accent: #8b4fd6;
+    --accent-bg: rgba(139, 79, 214, 0.15);
+    --accent-border: rgba(139, 79, 214, 0.45);
+    --social-bg: rgba(239, 232, 219, 0.65);
     --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+      rgba(70, 55, 35, 0.18) 0 10px 15px -3px,
+      rgba(70, 55, 35, 0.1) 0 4px 6px -2px;
   }
+}
 
   #social .button-icon {
     filter: invert(1) brightness(2);
