@@ -1,190 +1,139 @@
-# DFA Visualizer
+# Automaton Visualizer
 
-A small web app for exploring and testing deterministic finite automata (DFAs). Users pick a predefined DFA, enter a binary input string, view whether the string is accepted or rejected, and see the automaton rendered on a canvas with a readable execution trace.
+An interactive web app for exploring and testing automata such as **Deterministic Finite Automata (DFAs)** and **Pushdown Automata (PDAs)**.
 
-## Backend
-Back-end deployed on Render
+Users can select a predefined automaton, enter an input string, run the simulation, and watch the machine process the input step by step. The visualizer shows state transitions, input traces, accept/reject results, and PDA stack behavior.
 
 ## Live Page
-Use the GitHub pages link in the Deployment section
 
+Use the GitHub Pages link in the deployment section.
 
+## Backend
+
+Back-end deployed on Render.
 
 ## Purpose
 
-This project is meant to make Automaton behavior easier to understand visually.
+This project was built to make automata behavior easier to understand visually.
 
-It combines:
-- a **FastAPI backend** that stores DFA definitions and simulates them step by step
-- a **plain HTML/CSS/JavaScript frontend** that fetches DFA data, renders state diagrams, and shows simulation results
+Automata such as DFAs and PDAs can be difficult to follow when they are only shown as diagrams or transition tables. This tool helps users see what is happening during each step of computation by animating transitions, showing the remaining input, and displaying the trace of the machine.
 
-The goal is to give a lightweight learning tool for formal languages / automata concepts without needing a heavy framework.
+The goal is to provide a lightweight learning tool for students studying formal languages, computation theory, and automata concepts.
 
-## How it works
+## Features
 
-1. When the page loads, the frontend requests `GET /dfas`.
-2. The backend returns all available DFA definitions in a frontend-friendly format.
-3. The user selects a DFA and enters an input string.
-4. When **Run DFA** is clicked, the frontend sends `POST /run-dfa` with:
-   - the selected DFA id
-   - the input string
-5. The backend simulates the machine one symbol at a time and returns:
-   - whether the string is accepted
-   - the step-by-step traversal trace
-6. The frontend displays the result and trace, while the canvas renderer draws the DFA structure.
+- Select and run predefined DFAs
+- Select and run predefined PDAs
+- Enter custom input strings
+- View accept/reject results
+- Step through automaton execution visually
+- See animated state transitions
+- Display readable trace output
+- Visualize PDA stack behavior
+- Render automaton diagrams on a canvas
+- Backend validation using Pydantic models
+- FastAPI backend for simulation logic
+- Frontend interface for interacting with the automata
+
+## How It Works
+
+When the page loads, the frontend requests the available automata from the backend.
+
+The user selects an automaton type, chooses a specific automaton, and enters an input string.
+
+When the simulation runs, the frontend sends the selected automaton information and input string to the backend.
+
+The backend simulates the automaton step by step and returns:
+
+- whether the string was accepted or rejected
+- the execution trace
+- state transition information
+- remaining input at each step
+- stack updates for PDAs
+
+The frontend then displays the result, updates the trace output, and animates the automaton diagram.
 
 ## Architecture
 
 ### Frontend
 
-Files:
-- `static/index.html` — page structure and UI elements
-- `static/script.js` — fetches DFA data, handles user actions, and formats results
-- `static/dfaRenderer.js` — draws states and transitions on the canvas
-- `static/animationController.js`— controls the step-by-step DFA animation timing, syncing state/transition highlights with the trace display as the input string is processed.
-- `static/style.css` — provides the visual styling and layout for the interface, including the page structure, controls, results section, trace display, and canvas area.
+The frontend is responsible for:
 
-Responsibilities:
-- load all DFAs once at startup
-- populate the DFA dropdown
-- render the selected DFA on the canvas
-- send simulation requests to the backend
-- display accept/reject status and the trace output
+- loading available automata
+- displaying automaton options
+- collecting user input
+- sending simulation requests to the backend
+- rendering DFA/PDA diagrams
+- animating state transitions
+- displaying trace output
+- showing PDA stack behavior
+
+Main frontend responsibilities include:
+
+- automaton selection
+- input controls
+- visual rendering
+- animation timing
+- trace formatting
+- result display
 
 ### Backend
 
-File:
-- `app.py`
+The backend is built with **FastAPI**.
 
-Responsibilities:
-- serve the frontend entry page
-- serve static assets from `/static`
-- store predefined DFA definitions in memory
-- validate and simulate input strings
-- expose API endpoints used by the frontend
+The backend is responsible for:
 
-## API endpoints
+- storing predefined DFA and PDA definitions
+- validating request bodies with Pydantic
+- simulating automata step by step
+- returning structured trace data
+- handling invalid inputs
+- exposing API endpoints used by the frontend
+
+## API Endpoints
 
 ### `GET /`
-Serves the main HTML page.
+
+Serves the main application page or confirms the backend is running.
 
 ### `GET /dfas`
-Returns all DFA definitions needed by the frontend, including:
+
+Returns all available DFA definitions.
+
+Each DFA includes:
+
 - id
 - description
 - states
+- alphabet
 - start state
 - accept states
 - transitions
 
-### `POST /run-dfa`
-Runs a simulation for the selected DFA.
+### `GET /pdas`
+
+Returns all available PDA definitions.
+
+Each PDA includes:
+
+- id
+- description
+- states
+- input alphabet
+- stack alphabet
+- start state
+- accept states
+- transitions
+
+### `POST /run-automaton`
+
+Runs a simulation for the selected automaton.
 
 Example request body:
 
 ```json
 {
-  "dfa": "dfa1",
+  "automaton_type": "dfa",
+  "automaton_id": "dfa1",
   "input_string": "10011"
 }
-```
-
-Example response shape:
-
-```json
-{
-  "dfa": "dfa1",
-  "input_string": "10011",
-  "is_accepted": true,
-  "steps": [
-    {
-      "step": 0,
-      "state": "q0",
-      "from_state": null,
-      "to_state": null,
-      "remaining": "10011"
-    }
-  ]
-}
-```
-
-If the input contains a symbol outside the DFA alphabet, the backend returns an error message.
-
-## Current DFA data model
-
-Each DFA is stored in the backend with:
-- `description`
-- `alphabet`
-- `start_state`
-- `accept_states`
-- `transitions`
-
-Transitions are stored as `(state, symbol) -> next_state` mappings and are converted into a frontend-friendly array for rendering.
-
-## Example DFAs currently included
-
-Based on the current backend source, the app includes at least:
-- `dfa1` — contains at least one `1` and an even number of `0`s after the last `1`
-- `dfa2` — accepts strings with an even number of `1`s
-
-## Running the project locally
-
-### 1. Create the project structure
-Make sure your files are arranged like this:
-
-```text
-project-root/
-├── app.py
-├── requirements.txt
-└── static/
-    ├── index.html
-    ├── script.js
-    ├── dfaRenderer.js
-    └── style.css
-    └──animationController.js.css
-```
-
-### 2. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-requirments includes
-```txt
-fastapi
-uvicorn
-pydantic
-```
-
-### 3. Start the server
-
-```bash
-uvicorn app:app --reload
-```
-
-### 4. Open it in the browser
-
-Visit:
-
-```text
-http://127.0.0.1:8000
-```
-
-## Deployment notes
-
-This project is **not just a static site** in its current form.
-
-Because the frontend depends on FastAPI endpoints like `/dfas` and `/run-dfa`, it needs a backend runtime when deployed. That means:
-- **GitHub Pages alone is not enough** for the current version
-- a platform like **Render** works better because it can host the FastAPI backend
-
-If someone wants a GitHub Pages-only version, the DFA data and simulation logic would need to move fully into frontend JavaScript.
-
-## Key design choices
-
-- **Single fetch for DFA definitions**: the frontend loads all DFAs once from `/dfas`, which keeps the UI simpler and avoids repeated requests.
-- **Backend-owned DFA definitions**: the source of truth stays in Python, so simulation and visualization use the same data.
-- **Canvas-based renderer**: states, straight edges, curved reverse edges, self-loops, and start arrows are drawn dynamically.
-- **Readable trace output**: the frontend formats each run into a concise state/remaining-input sequence.
-
-
