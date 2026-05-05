@@ -16,7 +16,7 @@ Back-end deployed on Render.
 
 This project was built to make automata behavior easier to understand visually.
 
-Automata such as DFAs and PDAs can be difficult to follow when they are only shown as diagrams or transition tables. This tool helps users see what is happening during each step of computation by animating transitions, showing the remaining input, and displaying the trace of the machine.
+Automata such as DFAs and PDAs can be difficult to follow when they are only shown as diagrams or transition tables. This tool helps users see what is happening during each step of computation by animating transitions, showing the remaining input, and displaying the machine trace.
 
 The goal is to provide a lightweight learning tool for students studying formal languages, computation theory, and automata concepts.
 
@@ -31,9 +31,9 @@ The goal is to provide a lightweight learning tool for students studying formal 
 - Display readable trace output
 - Visualize PDA stack behavior
 - Render automaton diagrams on a canvas
-- Backend validation using Pydantic models
-- FastAPI backend for simulation logic
-- Frontend interface for interacting with the automata
+- Validate backend requests using Pydantic models
+- Use a FastAPI backend for simulation logic
+- Use a frontend interface for interacting with the automata
 
 ## How It Works
 
@@ -94,7 +94,7 @@ The backend is responsible for:
 
 ### `GET /`
 
-Serves the main application page or confirms the backend is running.
+Confirms the backend is running.
 
 ### `GET /dfas`
 
@@ -137,7 +137,8 @@ Example request body:
   "automaton_id": "dfa1",
   "input_string": "10011"
 }
-
+Example Response 
+```json
 {
   "automaton_type": "dfa",
   "automaton_id": "dfa1",
