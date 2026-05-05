@@ -137,3 +137,19 @@ Example request body:
   "automaton_id": "dfa1",
   "input_string": "10011"
 }
+
+{
+  "automaton_type": "dfa",
+  "automaton_id": "dfa1",
+  "input_string": "10011",
+  "is_accepted": true,
+  "steps": [
+    {
+      "step": 0,
+      "state": "q0",
+      "from_state": null,
+      "to_state": null,
+      "remaining": "10011"
+    }
+  ]
+}
